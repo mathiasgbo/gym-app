@@ -392,3 +392,20 @@ h2 { font-size: 34px; font-weight: 700; letter-spacing: .01em; line-height: 1; t
   background: color-mix(in srgb, var(--up) 12%, var(--surface)); color: var(--text); font-size: 14px; }
 .ob-err { color: var(--down); font-size: 14px; margin: -6px 0 12px; min-height: 1em; }
 body.onboarding #tabs { display: none; }
+
+/* Comida: estados y porciones */
+.pill.skip { background: color-mix(in srgb, var(--down) 18%, var(--surface-2)); color: var(--down); }
+.pill.muted-pill { background: transparent; border: 1px solid var(--border); color: var(--muted); font-weight: 500; }
+.meal.skipped { opacity: .7; }
+.meal.ate { border-color: color-mix(in srgb, var(--up) 45%, transparent); }
+.meal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+.btn.on-skip { color: var(--down); border-color: color-mix(in srgb, var(--down) 50%, transparent); background: color-mix(in srgb, var(--down) 12%, var(--surface-2)); }
+.guide-tip { margin: 0 0 4px; }
+.day-meals { margin: -4px 0 12px; }
+.portions { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.portion { display: grid; grid-template-columns: 86px 1fr 44px; gap: 10px; align-items: center; font-size: 14px; }
+.portion .bar { margin: 0; height: 7px; }
+.portion .bar span { background: var(--temper-warm); }
+.portion.full .bar span { background: var(--up); }
+.portion b { text-align: right; font-family: var(--display); font-size: 16px; font-weight: 600; }
+.bar.water span { background: linear-gradient(90deg, #5b8def, #8fb4ff); }

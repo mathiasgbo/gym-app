@@ -3,7 +3,7 @@ import {
   state, ui, esc, num, pad, todayStr, toDate, addDays, fmtDateLong, dayLog, setActiveDate,
   trainedOn, plannedDay, doneSets, fmtSet, exerciseNames, topbar, gear, DOW, baseKey,
 } from './store.js';
-import { plan, mealsFor, mealStatus, foodScore, waterMl, waterTarget } from './food.js';
+import { plan, mealsFor, mealStatus, foodScore, dayPortions, waterMl, waterTarget } from './food.js';
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const scoreClass = s => s == null ? '' : s >= 0.8 ? 'good' : s >= 0.5 ? 'mid' : 'low';
@@ -86,9 +86,12 @@ export function viewDate(d) {
     <div class="list">${meals.map(m => {
       const st = mealStatus(m, d);
       const items = st.items.map(it => it.split('|').slice(1).join('|'));
-      return `<div class="row ${st.done ? '' : 'faded'}"><span class="grow"><b>${st.done ? '✓' : '○'} ${esc(m.name)}</b>
-        ${items.length || st.note ? `<small>${esc([...items, st.note].filter(Boolean).join(' · '))}</small>` : ''}</span></div>`;
+      const icon = { ate: '✓', skipped: '✗', none: '○' }[st.status];
+      const detail = st.status === 'skipped' ? 'No comí' : st.generic ? 'Según el plan' : [...items, st.note].filter(Boolean).join(' · ');
+      return `<div class="row ${st.status === 'ate' ? '' : 'faded'}"><span class="grow"><b>${icon} ${esc(m.name)}</b>
+        ${detail ? `<small>${esc(detail)}</small>` : ''}</span></div>`;
     }).join('')}</div>
+    ${foodScore(d) != null ? `<p class="small">Cumplimiento del plan: <b>${Math.round(foodScore(d) * 100)}%</b> · ${dayPortions(d).map(x => `${x.label} ${num(Math.min(x.done, 99))}/${x.target}`).join(' · ')}</p>` : ''}
     <p class="muted small">💧 ${num(waterMl(d) / 1000)} / ${num(waterTarget() / 1000)} L · 😴 ${L.food?.sleep != null ? num(L.food.sleep) + ' h' : '—'}</p>`;
 
   const editable = d <= today;
