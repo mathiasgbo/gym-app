@@ -13,31 +13,37 @@ Capturas de pantalla (6, con datos de ejemplo): `play/screenshots/`. No se suben
 **Nombre de la app** (máx. 30): `Temple: rutina y progreso`
 
 **Descripción breve** (máx. 80):
-`Tu rutina, tus pesos, tu alimentación y tu sueño en un solo lugar. Sin conexión.`
+`Entreno, comidas, sueño y progreso en un solo lugar. Templá tu cuerpo.`
 
 **Descripción completa:**
 
-> Temple junta todo lo que hace a tu progreso: entrenamiento, alimentación y descanso. Tu cuerpo es tu templo.
->
-> 🏋️ ENTRENO
-> • Tu rutina por días, con series, repeticiones y notas.
-> • Registrá peso y reps de cada serie en segundos.
-> • Sugerencias de progresión (doble progresión): cuándo subir peso, mantener o bajar.
-> • Timer de descanso y aviso de semana de deload.
-> • Videos de técnica guardados en el teléfono para verlos sin señal.
->
-> 🍽️ ALIMENTACIÓN
-> • Cargá tu plan por porciones y marcá lo que comés en cada comida.
-> • Contador de agua con recordatorios y botón "Tomé un vaso" en la notificación.
-> • Sueño automático desde Health Connect (Samsung Health, Zepp y otras apps).
->
-> 📈 PROGRESO
-> • Calendario con entrenos, cardio y comidas cumplidas.
-> • Gráficos por ejercicio y de peso corporal.
-> • Importá tus informes de antropometría (PDF) y compará masa muscular, grasa, perímetros y pliegues.
->
-> 🔒 PRIVADA
-> Todo queda en tu teléfono. Sin cuentas, sin publicidad, sin servidores.
+```
+Temple junta todo lo que hace a tu progreso: entrenamiento, alimentación y descanso. Tu cuerpo es tu templo.
+
+🏋️ ENTRENÁ CON UN PLAN
+• Tu rutina organizada por días, con series, repeticiones y notas.
+• Registrá peso y repeticiones de cada serie en segundos.
+• Sugerencias de progresión automáticas: cuándo subir peso, mantener o bajar.
+• Timer de descanso que vibra al terminar.
+• Aviso de semana de descarga (deload) cuando la necesitás.
+• Videos de técnica guardados en el teléfono para verlos sin señal.
+
+🍽️ COMÉ SEGÚN TU PLAN
+• Cargá tu plan de alimentación por porciones y marcá lo que comés en cada comida.
+• Contador de agua con recordatorios y botón "Tomé un vaso" en la notificación.
+• Horas de sueño automáticas desde Health Connect (Samsung Health, Zepp y otras apps).
+
+📈 MIRÁ CÓMO PROGRESÁS
+• Calendario con tus entrenos, cardio y comidas cumplidas.
+• Gráficos por ejercicio y tendencia de cada levantamiento.
+• Peso corporal e IMC a lo largo del tiempo.
+• Importá tus informes de antropometría en PDF y compará masa muscular, grasa, perímetros y pliegues entre mediciones.
+
+🔒 TUS DATOS SON TUYOS
+Todo queda guardado en tu teléfono. Sin cuentas, sin publicidad, sin servidores. Podés exportar un backup cuando quieras.
+
+Temple funciona sin conexión.
+```
 
 **Categoría:** Salud y bienestar · **Etiquetas:** Fitness, Entrenamiento, Nutrición
 **Correo de contacto:** el de tu cuenta de desarrollador.
