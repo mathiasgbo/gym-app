@@ -10,7 +10,7 @@ App web instalable (PWA) para Android: rutina, registro de pesos, videos offline
 - `anthro.js` / `anthro-parse.js`: importa los informes de antropometría (PDF) y compara mediciones. `anthro-parse.js` se puede probar con node.
 - `lib/`: pdf.js (Mozilla, Apache-2.0) para leer los PDF en el teléfono.
 - `privado/`: plan de alimentación personal. **No se sube a GitHub** (está en .gitignore); se carga en el teléfono desde Ajustes.
-- `sw.js`: hace que funcione sin señal. **Si cambiás archivos, subí la versión de `CACHE`** (`gym-v3` → `gym-v4`).
+- `sw.js`: hace que funcione sin señal. **Si cambiás archivos, subí la versión de `CACHE`** (`gym-v4` → `gym-v5`).
 
 Probar en la PC:
 

@@ -335,15 +335,6 @@ function viewProgress(key) {
   const delta = lastBody && ref ? state.body[lastBody] - state.body[ref] : null;
   const w = weekStats();
 
-  const keys = [...new Set([...Object.keys(names), ...Object.values(state.logs).flatMap(l => Object.keys(l.ex || {}))])];
-  const rows = keys.map(k => {
-    const e = names[k] || { name: k, type: 'weight' };
-    const s = sessionsFor(k);
-    return `<a class="row" href="#/hist/${encodeURIComponent(k)}"><span class="grow"><b>${esc(e.name)}</b>
-      <small>${s.length ? `${s.length} ${s.length === 1 ? "sesión" : "sesiones"} · últ: ${e.type === 'weight' ? num(topWeight(s[0])) + ' kg' : bestReps(s[0]) + ' ' + unitLabel(e)}` : 'sin registros'}</small></span>
-      <span class="chev">›</span></a>`;
-  }).join('');
-
   return `
     ${topbar('Progreso', null, gear)}
     <section class="card">
@@ -367,8 +358,53 @@ function viewProgress(key) {
       <small>${lastBody ? `Último: ${num(state.body[lastBody])} kg (${fmtDate(lastBody)})` : 'Pesate 1 vez por semana, en ayunas, siempre el mismo día.'}
         ${delta != null ? ` · ${delta >= 0 ? '+' : ''}${num(Math.round(delta * 10) / 10)} kg en 4 semanas` : ''}</small>
     </section>
+    ${exercisesSection(names)}`;
+}
+
+let histFilter = 'all'; // día de la rutina elegido en el filtro de ejercicios
+
+function sparkline(vals) {
+  if (vals.length < 2) return '<span class="spark"></span>';
+  const W = 64, H = 24, P = 3;
+  const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const pts = vals.map((v, k) => `${P + k * (W - 2 * P) / (vals.length - 1)},${H - P - (v - min) / span * (H - 2 * P)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts}" /></svg>`;
+}
+
+function exercisesSection(names) {
+  const days = [...state.routine.days].sort((a, b) => a.dow - b.dow);
+  const pool = histFilter === 'all' ? days : days.filter(d => d.id === histFilter);
+  const keys = [...new Set(pool.flatMap(d => d.exercises.map(e => e.key)))];
+  if (histFilter === 'all') { // ejercicios que ya no están en la rutina pero tienen historial
+    for (const l of Object.values(state.logs)) for (const k of Object.keys(l.ex || {})) if (!keys.includes(k)) keys.push(k);
+  }
+
+  const withData = [], empty = [];
+  for (const k of keys) {
+    const e = names[k] || { name: k, type: 'weight' };
+    const s = sessionsFor(k);
+    if (!s.length) { empty.push(e); continue; }
+    const val = x => e.type === 'weight' ? topWeight(x) : bestReps(x);
+    const unit = e.type === 'weight' ? 'kg' : unitLabel(e);
+    const chrono = [...s].reverse();
+    const delta = val(s[0]) - val(chrono[0]);
+    withData.push(`<a class="row ex-row" href="#/hist/${encodeURIComponent(k)}">
+      <span class="grow"><b>${esc(e.name)}</b>
+        <small>${num(val(s[0]))} ${unit} · ${fmtDate(s[0].date)} · ${s.length} ${s.length === 1 ? 'sesión' : 'sesiones'}</small></span>
+      ${sparkline(chrono.slice(-8).map(val))}
+      <span class="trend ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}" title="Desde la primera sesión">${delta > 0 ? '▲ +' : delta < 0 ? '▼ ' : ''}${delta ? num(delta) : '='}</span>
+    </a>`);
+  }
+
+  const chips = [['all', 'Todos'], ...days.map(d => [d.id, `${DOW[d.dow].slice(0, 3)} · ${d.title}`])]
+    .map(([id, label]) => `<button class="chip ${histFilter === id ? 'on' : ''}" data-action="hist-filter" data-day="${id}">${esc(label)}</button>`).join('');
+
+  return `
     <h3 class="section">Ejercicios</h3>
-    <div class="list">${rows}</div>`;
+    <div class="chips scroll-x">${chips}</div>
+    <div class="list">${withData.join('') || '<p class="muted">Todavía no registraste ejercicios de este día.</p>'}</div>
+    ${empty.length ? `<details class="card empty-list" data-keep="hist-empty"><summary>Sin registros todavía (${empty.length})</summary>
+      <p class="muted small">${empty.map(e => esc(e.name)).join(' · ')}</p></details>` : ''}`;
 }
 
 function viewExerciseHistory(k, names) {
@@ -561,6 +597,7 @@ document.addEventListener('click', async ev => {
 
   if (action === 'rest-stop') stopRest();
   else if (action === 'date-today') { setActiveDate(null); render(); }
+  else if (action === 'hist-filter') { histFilter = btn.dataset.day; render({ keep: true }); }
   else if (action === 'deload-on') { deloadOn(); render(); }
   else if (action === 'deload-off') { deloadOff(); render(); }
   else if (action === 'plan-remove') {
