@@ -3,7 +3,11 @@
 App web instalable (PWA) para Android: rutina, registro de pesos, videos offline y sugerencias de progresión.
 
 - `routine.js`: rutina por defecto (Mes 2).
-- `app.js`: pantallas, registro de series, sugerencias (doble progresión), videos (IndexedDB) y backup.
+- `store.js`: estado, utilidades y fecha activa (para cargar días pasados).
+- `app.js`: router, entreno (series, sugerencias de doble progresión, videos), progreso y ajustes.
+- `food.js`: alimentación (comidas por porciones, agua, sueño, meal prep).
+- `calendar.js`: calendario mensual, detalle de un día y resumen semanal.
+- `privado/`: plan de alimentación personal. **No se sube a GitHub** (está en .gitignore); se carga en el teléfono desde Ajustes.
 - `sw.js`: hace que funcione sin señal. **Si cambiás archivos, subí la versión de `CACHE`** (`gym-v1` → `gym-v2`).
 
 Probar en la PC:

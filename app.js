@@ -1,51 +1,20 @@
 import { DEFAULT_ROUTINE, ex, slug } from './routine.js';
+import {
+  state, save, replaceState, ui, DOW,
+  esc, num, parseNum, roundTo, pad, todayStr, toDate, addDays, fmtDate, isUrl,
+  activeDate, setActiveDate, dayLog, ensureLog, dateBanner,
+  doneSets, unitLabel, fmtSet, exerciseNames, topbar, gear, chart,
+} from './store.js';
+import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan } from './food.js';
+import { viewCalendar, viewDate, weekStats } from './calendar.js';
 
-const LS_KEY = 'gymapp.v1';
-const DOW = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const SECTIONS = [['main', 'Principal'], ['core', 'Core'], ['extra', 'Extra']];
 const TYPES = [['weight', 'Peso × reps'], ['reps', 'Solo reps (peso corporal)'], ['time', 'Tiempo (segundos)']];
 const $app = document.getElementById('app');
+const $tabs = document.getElementById('tabs');
 const $rest = document.getElementById('rest');
 
-// ---------- Estado ----------
-
-const fresh = () => ({
-  routine: structuredClone(DEFAULT_ROUTINE),
-  logs: {},   // { 'YYYY-MM-DD': { cardio: bool, ex: { [key]: { sets: [{ w, r }], note } } } }
-  links: {},  // { [key]: url }
-  settings: { deload: false, lastDeload: null },
-});
-
-function load() {
-  try {
-    const s = JSON.parse(localStorage.getItem(LS_KEY));
-    if (s && typeof s === 'object') {
-      const base = fresh();
-      return { ...base, ...s, routine: s.routine || base.routine, settings: { ...base.settings, ...s.settings } };
-    }
-  } catch {}
-  return fresh();
-}
-let state = load();
-const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
-
-// ---------- Utilidades ----------
-
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const num = n => Number.isFinite(n) ? n.toLocaleString('es-AR', { maximumFractionDigits: 2 }) : '';
-const parseNum = v => { const n = parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
-const roundTo = (x, step) => Math.round(x / step) * step;
-const pad = n => String(n).padStart(2, '0');
-const dateStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const todayStr = () => dateStr(new Date());
-const toDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
-const fmtDate = s => toDate(s).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
-const isUrl = v => /^https?:\/\//i.test(v);
-
 const day = id => state.routine.days.find(d => d.id === id);
-const todayLog = () => state.logs[todayStr()];
-const unitLabel = e => e.type === 'time' ? 's' : 'reps';
-const fmtSet = (e, x) => e.type === 'weight' ? `${num(x.w ?? 0)}×${x.r}` : `${x.r}${e.type === 'time' ? 's' : ''}`;
 
 function target(e) {
   const sets = e.setsMin === e.setsMax ? e.setsMin : `${e.setsMin}-${e.setsMax}`;
@@ -53,29 +22,22 @@ function target(e) {
   return `${sets} × ${reps}${e.type === 'time' ? ' s' : ''}${e.perSide ? ' /lado' : ''}`;
 }
 
-const doneSets = s => (s?.sets || []).filter(x => x.r > 0);
 const topWeight = s => Math.max(0, ...doneSets(s).map(x => x.w || 0));
 const bestReps = s => Math.max(0, ...doneSets(s).map(x => x.r));
 const totalReps = s => doneSets(s).reduce((a, x) => a + x.r, 0);
 
-function sessionsFor(key, excludeToday = false) {
-  const t = todayStr();
+// Sesiones de un ejercicio, de la más nueva a la más vieja. Con `before`, solo las anteriores a esa fecha.
+function sessionsFor(key, before) {
   return Object.keys(state.logs).sort().reverse()
-    .filter(d => !(excludeToday && d === t))
+    .filter(d => !before || d < before)
     .map(d => ({ date: d, ...state.logs[d].ex?.[key] }))
     .filter(s => doneSets(s).length);
-}
-
-function exerciseNames() {
-  const names = {};
-  for (const d of state.routine.days) for (const e of d.exercises) names[e.key] ??= e;
-  return names;
 }
 
 // ---------- Sugerencias (doble progresión) ----------
 
 function suggest(e, isFirstHeavy) {
-  const prev = sessionsFor(e.key, true);
+  const prev = sessionsFor(e.key, activeDate());
   const last = prev[0];
   const warm = w => isFirstHeavy && w ? ` Calentá antes con 1 serie a ~${num(roundTo(w * 0.55, e.inc))} kg.` : '';
 
@@ -184,42 +146,39 @@ async function showVideo(key) {
   slot.closest('details').open = true;
 }
 
-// ---------- Vistas ----------
-
-const topbar = (title, back, right = '') => `
-  <header class="topbar">
-    ${back ? `<a class="icon" href="${back}" aria-label="Volver">‹</a>` : '<span class="icon"></span>'}
-    <h1>${esc(title)}</h1>
-    ${right || '<span class="icon"></span>'}
-  </header>`;
+// ---------- Vistas: entreno ----------
 
 function viewHome() {
   const R = state.routine;
-  const dow = new Date().getDay();
+  const date = activeDate();
+  const dow = toDate(date).getDay();
   const today = R.days.find(d => d.dow === dow);
-  const log = todayLog();
+  const log = dayLog();
   const rows = [...R.days].sort((a, b) => a.dow - b.dow).map(d => {
     const n = d.exercises.filter(e => doneSets(log?.ex?.[e.key]).length).length;
     return `<a class="row ${d === today ? 'today' : ''}" href="#/day/${d.id}">
       <span class="dow">${DOW[d.dow].slice(0, 3)}</span>
       <span class="grow"><b>${esc(d.title)}</b><small>${d.exercises.length} ejercicios</small></span>
-      ${d === today && n ? `<span class="pill">${n}/${d.exercises.length}</span>` : ''}
+      ${n ? `<span class="pill">${n}/${d.exercises.length}</span>` : ''}
       <span class="chev">›</span></a>`;
   }).join('');
+  const food = foodSummaryLine(date);
 
   return `
-    ${topbar('Gym', null, '<a class="icon" href="#/settings" aria-label="Ajustes">⚙</a>')}
+    ${topbar('Gym', null, gear)}
+    ${dateBanner()}
     ${deloadBanner()}
+    ${date === todayStr() ? mealPrepBanner() : ''}
     <section class="hero">
-      <div class="muted">${DOW[dow]} · ${fmtDate(todayStr())}</div>
+      <div class="muted">${DOW[dow]} · ${fmtDate(date)}</div>
       ${today
         ? `<h2>${esc(today.title)}</h2><a class="btn primary big" href="#/day/${today.id}">Empezar entrenamiento</a>`
-        : `<h2>Hoy descansás</h2><p class="muted">Podés hacer igual el cardio, o entrenar algún día de la lista.</p>`}
-      <label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}> Cardio de hoy hecho</label>
+        : `<h2>Día de descanso</h2><p class="muted">Podés hacer igual el cardio, o entrenar algún día de la lista.</p>`}
+      <label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}> Cardio hecho</label>
+      ${food ? `<a class="food-line" href="#/food">${food} <span class="chev">›</span></a>` : ''}
     </section>
     <h3 class="section">Semana</h3>
     <div class="list">${rows}</div>
-    <a class="btn block" href="#/hist">📈 Historial y progreso</a>
     <details class="card info">
       <summary>${esc(R.name)} — reglas</summary>
       <dl>
@@ -236,13 +195,13 @@ function viewHome() {
 function viewDay(id) {
   const d = day(id);
   if (!d) return notFound();
-  const log = todayLog();
+  const log = dayLog();
   const groups = SECTIONS.map(([sec, label]) => {
     const items = d.exercises.map((e, i) => [e, i]).filter(([e]) => e.section === sec);
     if (!items.length) return '';
     return `<h3 class="section">${label}</h3><div class="list">${items.map(([e, i]) => {
       const n = doneSets(log?.ex?.[e.key]).length;
-      const last = sessionsFor(e.key, true)[0];
+      const last = sessionsFor(e.key, activeDate())[0];
       const lastTxt = last ? (e.type === 'weight' ? `últ: ${num(topWeight(last))} kg` : `últ: ${bestReps(last)} ${unitLabel(e)}`) : 'nuevo';
       return `<a class="row ${n >= e.setsMin ? 'complete' : ''}" href="#/ex/${d.id}/${i}">
         <span class="grow"><b>${esc(e.name)}</b>
@@ -254,6 +213,7 @@ function viewDay(id) {
 
   return `
     ${topbar(`${DOW[d.dow]} — ${d.title}`, '#/', `<a class="icon" href="#/edit/${d.id}/new" aria-label="Agregar ejercicio">＋</a>`)}
+    ${dateBanner()}
     ${deloadBanner()}
     <p class="note">🔥 ${esc(state.routine.warmup)}</p>
     ${groups}
@@ -274,7 +234,7 @@ function viewEx(dayId, idx) {
   const sug = suggest(e, firstHeavy);
   ctx = { d, i, e, sug };
 
-  const cur = todayLog()?.ex?.[e.key];
+  const cur = dayLog()?.ex?.[e.key];
   const lastSets = sug.last?.sets?.filter(x => x.r > 0) || [];
   const rows = Math.max(e.setsMax, cur?.sets?.length || 0);
   const link = state.links[e.key] || '';
@@ -297,6 +257,7 @@ function viewEx(dayId, idx) {
 
   return `
     ${topbar(e.name, `#/day/${d.id}`, `<a class="icon" href="#/edit/${d.id}/${i}" aria-label="Editar ejercicio">✎</a>`)}
+    ${dateBanner()}
     <div class="meta">${target(e)}${e.heavy ? ' · <span class="tag">pesado</span>' : ''}</div>
     ${e.note ? `<p class="note warn">${esc(e.note)}</p>` : ''}
     <section class="sug ${sug.level}">
@@ -360,34 +321,55 @@ function viewEdit(dayId, idx) {
     </form>`;
 }
 
-function chart(points) {
-  if (points.length < 2) return '';
-  const W = 320, H = 110, P = 14;
-  const ys = points.map(p => p.y);
-  const min = Math.min(...ys), max = Math.max(...ys), span = max - min || 1;
-  const xy = points.map((p, k) => [P + k * (W - 2 * P) / (points.length - 1), H - P - (p.y - min) / span * (H - 2 * P)]);
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Progreso">
-    <polyline points="${xy.map(p => p.join(',')).join(' ')}" />
-    ${xy.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5" />`).join('')}
-    <text x="${P}" y="12">${num(max)}</text><text x="${P}" y="${H - 2}">${num(min)}</text>
-  </svg>`;
+// ---------- Vistas: progreso ----------
+
+function viewProgress(key) {
+  const names = exerciseNames();
+  if (key) return viewExerciseHistory(decodeURIComponent(key), names);
+
+  const bodyDates = Object.keys(state.body).sort();
+  const bodyPts = bodyDates.map(d => ({ y: state.body[d] }));
+  const lastBody = bodyDates.at(-1);
+  const ref = bodyDates.filter(d => d <= addDays(todayStr(), -28)).at(-1);
+  const delta = lastBody && ref ? state.body[lastBody] - state.body[ref] : null;
+  const w = weekStats();
+
+  const keys = [...new Set([...Object.keys(names), ...Object.values(state.logs).flatMap(l => Object.keys(l.ex || {}))])];
+  const rows = keys.map(k => {
+    const e = names[k] || { name: k, type: 'weight' };
+    const s = sessionsFor(k);
+    return `<a class="row" href="#/hist/${encodeURIComponent(k)}"><span class="grow"><b>${esc(e.name)}</b>
+      <small>${s.length ? `${s.length} ${s.length === 1 ? "sesión" : "sesiones"} · últ: ${e.type === 'weight' ? num(topWeight(s[0])) + ' kg' : bestReps(s[0]) + ' ' + unitLabel(e)}` : 'sin registros'}</small></span>
+      <span class="chev">›</span></a>`;
+  }).join('');
+
+  return `
+    ${topbar('Progreso', null, gear)}
+    <section class="card">
+      <h3>Últimos 7 días</h3>
+      <div class="kpis">
+        <div><b>${w.trained}/${w.planned}</b><small>entrenos</small></div>
+        <div><b>${w.cardio}</b><small>cardio</small></div>
+        <div><b>${w.food != null ? w.food + '%' : '—'}</b><small>comidas</small></div>
+        <div><b>${w.water != null ? num(Math.round(w.water / 100) / 10) + ' L' : '—'}</b><small>agua/día</small></div>
+        <div><b>${w.sleep != null ? num(Math.round(w.sleep * 10) / 10) + ' h' : '—'}</b><small>sueño</small></div>
+      </div>
+    </section>
+    <section class="card">
+      <h3>⚖️ Peso corporal</h3>
+      <div class="link-row">
+        <input type="text" inputmode="decimal" data-field="body" placeholder="kg" value="${state.body[todayStr()] != null ? num(state.body[todayStr()]) : ''}" aria-label="Peso corporal de hoy">
+        <span class="muted nowrap">kg hoy</span>
+      </div>
+      ${chart(bodyPts)}
+      <small>${lastBody ? `Último: ${num(state.body[lastBody])} kg (${fmtDate(lastBody)})` : 'Pesate 1 vez por semana, en ayunas, siempre el mismo día.'}
+        ${delta != null ? ` · ${delta >= 0 ? '+' : ''}${num(Math.round(delta * 10) / 10)} kg en 4 semanas` : ''}</small>
+    </section>
+    <h3 class="section">Ejercicios</h3>
+    <div class="list">${rows}</div>`;
 }
 
-function viewHistory(key) {
-  const names = exerciseNames();
-  if (!key) {
-    const keys = [...new Set([...Object.keys(names), ...Object.values(state.logs).flatMap(l => Object.keys(l.ex || {}))])];
-    const rows = keys.map(k => {
-      const e = names[k] || { name: k, type: 'weight' };
-      const s = sessionsFor(k);
-      return `<a class="row" href="#/hist/${encodeURIComponent(k)}"><span class="grow"><b>${esc(e.name)}</b>
-        <small>${s.length ? `${s.length} sesiones · últ: ${e.type === 'weight' ? num(topWeight(s[0])) + ' kg' : bestReps(s[0]) + ' ' + unitLabel(e)}` : 'sin registros'}</small></span>
-        <span class="chev">›</span></a>`;
-    }).join('');
-    const cardioDays = Object.values(state.logs).filter(l => l.cardio).length;
-    return `${topbar('Historial', '#/')}<p class="muted">Días con cardio registrado: <b>${cardioDays}</b></p><div class="list">${rows}</div>`;
-  }
-  const k = decodeURIComponent(key);
+function viewExerciseHistory(k, names) {
   const e = names[k] || { name: k, type: 'weight' };
   const s = sessionsFor(k);
   const pts = [...s].reverse().map(x => ({ y: e.type === 'weight' ? topWeight(x) : bestReps(x) }));
@@ -398,9 +380,23 @@ function viewHistory(key) {
       <small>${doneSets(x).map(y => fmtSet(e, y)).join(' · ')}${x.note ? ` — ${esc(x.note)}` : ''}</small></span></div>`).join('') || '<p class="muted">Todavía no hay registros.</p>'}</div>`;
 }
 
+// ---------- Vistas: ajustes ----------
+
 function viewSettings() {
+  const p = plan();
+  const prep = state.settings.mealPrepDow;
+  const dowOpts = ['<option value="">No recordar</option>', ...DOW.map((d, k) => `<option value="${k}" ${prep != null && prep !== '' && Number(prep) === k ? 'selected' : ''}>${d}</option>`)].join('');
   return `
     ${topbar('Ajustes', '#/')}
+    <section class="card">
+      <h3>Plan de alimentación</h3>
+      ${p ? `<p class="muted small">${esc(p.title || 'Plan cargado')}${p.goal ? ` · ${esc(p.goal)}` : ''}</p>` : '<p class="muted small">No hay plan cargado.</p>'}
+      <div class="btns">
+        <label class="btn small">📄 ${p ? 'Reemplazar' : 'Cargar'} plan<input type="file" accept="application/json,.json" data-action="plan-file" hidden></label>
+        ${p ? '<button class="btn small danger" data-action="plan-remove">Quitar plan</button>' : ''}
+      </div>
+      <label class="stack">Recordatorio de meal prep<select data-action="meal-prep">${dowOpts}</select></label>
+    </section>
     <section class="card">
       <h3>Deload</h3>
       <p class="muted small">${esc(state.routine.deload)} Semanas desde el último: <b>${weeksSinceDeload()}</b>.</p>
@@ -408,7 +404,7 @@ function viewSettings() {
     </section>
     <section class="card">
       <h3>Backup</h3>
-      <p class="muted small">Exportá tus datos cada tanto (rutina, pesos y links; los videos no se incluyen).</p>
+      <p class="muted small">Exportá tus datos cada tanto: rutina, pesos, comidas, plan y links. Los videos no se incluyen.</p>
       <div class="btns">
         <button class="btn small" data-action="export">⬇ Exportar</button>
         <label class="btn small">⬆ Importar<input type="file" accept="application/json,.json" data-action="import" hidden></label>
@@ -429,19 +425,35 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 
 // ---------- Router ----------
 
-function render() {
-  const [, view, a, b] = (location.hash || '#/').split('/');
+const TABS = [['', '🏋️', 'Entreno'], ['food', '🍽️', 'Comida'], ['cal', '📅', 'Calendario'], ['hist', '📈', 'Progreso']];
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', settings: '' };
+
+function render({ keep = false } = {}) {
+  const [, view = '', a, b] = (location.hash || '#/').split('/');
+  const open = keep ? [...$app.querySelectorAll('details[data-keep]')].map(d => [d.dataset.keep, d.open]) : [];
+  const y = window.scrollY;
   ctx = null;
   const html = {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEdit(a, b),
-    hist: () => viewHistory(a), settings: viewSettings,
-  }[view || ''];
+    food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
+    hist: () => viewProgress(a), settings: viewSettings,
+  }[view];
   $app.innerHTML = html ? html() : notFound();
-  window.scrollTo(0, 0);
+  $tabs.innerHTML = TABS.map(([v, icon, label]) =>
+    `<a href="#/${v}" class="${TAB_OF[view] === v ? 'on' : ''}"><span>${icon}</span>${label}</a>`).join('');
+  if (keep) {
+    for (const [k, isOpen] of open) {
+      const d = $app.querySelector(`details[data-keep="${CSS.escape(k)}"]`);
+      if (d) d.open = isOpen;
+    }
+    window.scrollTo(0, y);
+  } else requestAnimationFrame(() => window.scrollTo(0, 0));
   if (ctx) showVideo(ctx.e.key);
   if (view === 'settings') showStorage();
 }
-window.addEventListener('hashchange', render);
+ui.render = render;
+history.scrollRestoration = 'manual';
+window.addEventListener('hashchange', () => render());
 
 async function showStorage() {
   const el = document.getElementById('storage');
@@ -454,7 +466,7 @@ async function showStorage() {
 // ---------- Registro de series ----------
 
 function setSet(e, k, patch) {
-  const L = state.logs[todayStr()] ??= {};
+  const L = ensureLog();
   L.ex ??= {};
   const x = L.ex[e.key] ??= { sets: [] };
   while (x.sets.length <= k) x.sets.push({});
@@ -486,10 +498,13 @@ document.addEventListener('change', async ev => {
   const t = ev.target;
   const action = t.dataset.action;
   if (action === 'cardio') {
-    (state.logs[todayStr()] ??= {}).cardio = t.checked;
+    ensureLog().cardio = t.checked;
     save();
   } else if (action === 'deload-toggle') {
     t.checked ? deloadOn() : deloadOff();
+  } else if (action === 'meal-prep') {
+    state.settings.mealPrepDow = t.value === '' ? null : Number(t.value);
+    save();
   } else if (action === 'video-file' && ctx && t.files[0]) {
     const key = ctx.e.key;
     try {
@@ -502,13 +517,19 @@ document.addEventListener('change', async ev => {
   } else if (action === 'import' && t.files[0]) {
     try {
       const data = JSON.parse(await t.files[0].text());
+      if (validPlan(data)) throw new Error('Ese archivo es un plan de alimentación: cargalo desde "Plan de alimentación".');
       if (!data.routine?.days) throw new Error('El archivo no parece un backup de esta app.');
-      if (!confirm('Esto reemplaza la rutina y el historial actuales por los del backup. ¿Seguir?')) return;
-      state = { ...fresh(), ...data };
-      save();
+      if (!confirm('Esto reemplaza todos tus datos actuales por los del backup. ¿Seguir?')) return;
+      replaceState(data);
       location.hash = '#/';
       render();
     } catch (err) { alert('No se pudo importar: ' + err.message); }
+  } else if (t.dataset.field === 'body') {
+    const v = parseNum(t.value);
+    if (v != null && (v < 30 || v > 250)) { alert('Revisá el peso: tiene que estar en kg.'); return; }
+    if (v == null) delete state.body[todayStr()]; else state.body[todayStr()] = v;
+    save();
+    render({ keep: true });
   } else if (ctx && t.dataset.field) {
     const { e } = ctx;
     const f = t.dataset.field;
@@ -516,9 +537,9 @@ document.addEventListener('change', async ev => {
       const k = Number(t.dataset.i);
       const v = parseNum(t.value);
       setSet(e, k, { [f]: f === 'r' && v != null ? Math.round(v) : v });
-      t.closest('.set').classList.toggle('done', todayLog().ex[e.key].sets[k].r > 0);
+      t.closest('.set').classList.toggle('done', dayLog().ex[e.key].sets[k].r > 0);
     } else if (f === 'note') {
-      const L = state.logs[todayStr()] ??= {};
+      const L = ensureLog();
       ((L.ex ??= {})[e.key] ??= { sets: [] }).note = t.value.trim();
       save();
     } else if (f === 'link') {
@@ -526,20 +547,23 @@ document.addEventListener('change', async ev => {
       if (v && !isUrl(v)) { alert('El link tiene que empezar con http:// o https://'); return; }
       if (v) state.links[e.key] = v; else delete state.links[e.key];
       save();
-      render();
+      render({ keep: true });
     }
   }
 });
 
 document.addEventListener('click', async ev => {
   const btn = ev.target.closest('[data-action]');
-  if (!btn || btn.tagName === 'INPUT') return;
+  if (!btn || btn.tagName === 'INPUT' || btn.tagName === 'SELECT') return;
   const action = btn.dataset.action;
 
   if (action === 'rest-stop') stopRest();
+  else if (action === 'date-today') { setActiveDate(null); render(); }
   else if (action === 'deload-on') { deloadOn(); render(); }
   else if (action === 'deload-off') { deloadOff(); render(); }
-  else if (action === 'check' && ctx) {
+  else if (action === 'plan-remove') {
+    if (confirm('¿Quitar el plan de alimentación? Tus registros de comidas se mantienen.')) { state.food.plan = null; save(); render(); }
+  } else if (action === 'check' && ctx) {
     const { e, sug } = ctx;
     const k = Number(btn.dataset.i);
     const row = btn.closest('.set');
@@ -560,11 +584,9 @@ document.addEventListener('click', async ev => {
     row.classList.add('done');
     startRest(e.heavy ? 150 : e.section === 'core' ? 60 : 90);
   } else if (action === 'add-set' && ctx) {
-    const cur = todayLog()?.ex?.[ctx.e.key];
+    const cur = dayLog()?.ex?.[ctx.e.key];
     setSet(ctx.e, Math.max(ctx.e.setsMax, cur?.sets?.length || 0), {});
-    const y = window.scrollY;
-    render();
-    window.scrollTo(0, y);
+    render({ keep: true });
   } else if (action === 'video-del' && ctx) {
     if (confirm('¿Quitar el video guardado de este ejercicio?')) { await vdel(ctx.e.key); showVideo(ctx.e.key); }
   } else if (action === 'export') {
