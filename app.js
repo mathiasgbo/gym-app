@@ -9,6 +9,7 @@ import {
 import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
 import { viewRoutine, viewRoutineDay, viewEditExercise, viewLibrary, viewReplace, viewNewExercise } from './routine-editor.js';
 import { viewRoutines, isRoutineFile, viewTemplates, viewTemplate, templateCards } from './routines.js';
+import { viewPlanHub, viewPlanAi, viewPlanReview, viewPlanEdit, viewPlanMeal, viewPlanGroup, viewPlanLink } from './plan-tools.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { energy, avgKcal, ACTIVITY, GOALS } from './nutrition.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
@@ -481,10 +482,7 @@ function viewSettings() {
     <section class="card">
       <h3>Plan de alimentación</h3>
       ${p ? `<p class="muted small">${esc(p.title || 'Plan cargado')}${p.goal ? ` · ${esc(p.goal)}` : ''}</p>` : '<p class="muted small">No hay plan cargado.</p>'}
-      <div class="btns">
-        <label class="btn small">📄 ${p ? 'Reemplazar' : 'Cargar'} plan<input type="file" accept="application/json,.json" data-action="plan-file" hidden></label>
-        ${p ? '<button class="btn small danger" data-action="plan-remove">Quitar plan</button>' : ''}
-      </div>
+      <a class="btn small" href="#/plan">${p ? 'Ver, editar o reemplazar' : 'Cargar o armar un plan'}</a>
       <label class="stack">Recordatorio de meal prep<select data-action="meal-prep">${dowOpts}</select></label>
     </section>
     <section class="card">
@@ -516,7 +514,7 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 // ---------- Router ----------
 
 const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
-const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', routine: '', routines: '', tpls: '', tpl: '', rday: '', lib: '', replace: '', newex: '' };
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', plan: 'food', routine: '', routines: '', tpls: '', tpl: '', rday: '', lib: '', replace: '', newex: '' };
 
 function render({ keep = false } = {}) {
   const [, view = '', a, b, c, x] = (location.hash || '#/').split('/');
@@ -533,6 +531,8 @@ function render({ keep = false } = {}) {
   }
   const html = {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEditExercise(a, b, c),
+    plan: () => ({ '': viewPlanHub, ai: viewPlanAi, review: viewPlanReview, edit: viewPlanEdit,
+      meal: () => viewPlanMeal(b), group: () => viewPlanGroup(b), link: () => viewPlanLink(b, c, x) }[a || '']?.() ?? notFound()),
     routine: viewRoutine, routines: viewRoutines, tpls: viewTemplates, tpl: () => viewTemplate(a), rday: () => viewRoutineDay(a), lib: () => viewLibrary(a, b),
     replace: () => viewReplace(a, b, c), newex: () => viewNewExercise(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
@@ -691,9 +691,7 @@ document.addEventListener('click', async ev => {
   else if (action === 'hist-filter') { histFilter = btn.dataset.day; render({ keep: true }); }
   else if (action === 'deload-on') { deloadOn(); render(); }
   else if (action === 'deload-off') { deloadOff(); render(); }
-  else if (action === 'plan-remove') {
-    if (confirm('¿Quitar el plan de alimentación? Tus registros de comidas se mantienen.')) { state.food.plan = null; save(); render(); }
-  } else if (action === 'check' && ctx) {
+  else if (action === 'check' && ctx) {
     const { e, sug } = ctx;
     const k = Number(btn.dataset.i);
     const row = btn.closest('.set');

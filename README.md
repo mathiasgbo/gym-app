@@ -12,6 +12,7 @@ App web instalable (PWA) para Android: rutina, registro de pesos, videos offline
 - `food.js`: alimentación (estados por comida, cumplimiento por porciones, agua, sueño, meal prep).
 - `foods.js`: base de ~220 alimentos de Argentina y Uruguay (kcal y macros cada 100 g, porciones caseras) y búsqueda.
 - `nutrition.js`: calorías y macros por comida y por día, y objetivo diario (basal del informe o Mifflin-St Jeor × actividad ± objetivo).
+- `plan-tools.js`: plan de alimentación: importar desde el PDF con la IA del usuario (pedido listo + pegar respuesta, revisión y vinculación con la base) y editor manual.
 - `off.js`: productos envasados por código de barras (Open Food Facts); se guardan como alimentos propios.
 - `foodlog.js`: agregar alimentos a una comida (búsqueda, porción, cantidad, favoritos, recientes, alimentos propios).
 - `profile.js`: perfil y pantalla de bienvenida (nombre, edad, peso/altura o antropometría).

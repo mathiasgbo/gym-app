@@ -158,8 +158,8 @@ export function viewFood() {
     ${topbar('Alimentación', null, gear)}
     <section class="card empty">
       <h3>Cargá tu plan de alimentación</h3>
-      <p class="muted">El plan se guarda solo en este teléfono. Elegí el archivo <b>plan-alimentacion.json</b> desde donde lo guardaste (Drive, WhatsApp, descargas…).</p>
-      <label class="btn primary block">📄 Elegir archivo<input type="file" accept="application/json,.json" data-action="plan-file" hidden></label>
+      <p class="muted">Desde el PDF de tu nutricionista (con la ayuda de tu IA), desde un archivo, o armalo a mano. Se guarda solo en este teléfono.</p>
+      <a class="btn primary block" href="#/plan">Cargar mi plan</a>
     </section>`;
 
   const f = dayLog(date)?.food || {};
@@ -271,7 +271,8 @@ export function viewFood() {
     <details class="card info" data-keep="recs">
       <summary>📋 Recomendaciones del plan</summary>
       <ul>${(p.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}</ul>
-    </details>`;
+    </details>
+    <a class="btn block" href="#/plan">📋 Ver o editar mi plan</a>`;
 }
 
 // ---------- Eventos ----------
@@ -345,7 +346,7 @@ document.addEventListener('change', async ev => {
       if (plan() && !confirm('Ya tenés un plan cargado. ¿Reemplazarlo? Tus registros de comidas se mantienen.')) return;
       state.food.plan = data;
       save();
-      ui.render();
+      if (location.hash.startsWith('#/plan')) location.hash = '#/food'; else ui.render();
     } catch (err) { alert('No se pudo cargar el plan: ' + err.message); }
   }
 });

@@ -488,3 +488,23 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .tpl-list { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
 .tpl-list li { margin: 5px 0; }
 .card h3 .dow { margin-right: 6px; }
+
+/* Plan: importar y editar */
+.plan-title { display: block; font-size: 18px; }
+.step h3 { display: flex; align-items: center; gap: 10px; }
+.step-n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--temper-warm); color: var(--accent-ink); font-family: var(--display); font-size: 16px; }
+.step textarea { margin-top: 8px; font-size: 14px; }
+.ok-text { color: var(--up); }
+.warn-text { color: var(--hold); }
+.ob-ic { font-size: 20px; color: var(--accent); font-family: var(--display); }
+.plan-group { margin-bottom: 14px; }
+.plan-opt { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-top: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }
+.plan-opt.unlinked { border-color: color-mix(in srgb, var(--hold) 50%, transparent); }
+.plan-opt b { display: block; font-size: 15px; font-weight: 600; }
+.plan-opt-edit { align-items: flex-start; }
+.plan-opt-edit input { margin-bottom: 6px; }
+.slot-row select { flex: 1; }
+.slot-row .count { width: 64px; flex: none; text-align: center; }
+.link-row { gap: 8px; margin-top: 8px; }
+.link-row .grams { width: 76px; flex: none; text-align: center; }
+.plan-opt.approx { border-color: color-mix(in srgb, var(--hold) 35%, transparent); }

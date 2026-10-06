@@ -164,6 +164,9 @@ export function onResume(cb) {
   plugin('App').addListener('resume', cb);
 }
 
+// Compartir texto con otra app (por ejemplo, con la IA que use el usuario).
+export const shareText = text => plugin('Share').share({ text, dialogTitle: 'Compartir con tu IA' });
+
 // En la app no se pueden "descargar" archivos: se guardan y se abre el menú de compartir.
 export async function shareFile(name, text) {
   const { uri } = await plugin('Filesystem').writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
