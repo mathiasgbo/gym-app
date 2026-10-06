@@ -1,14 +1,30 @@
 apply plugin: 'com.android.application'
 
+// Clave de subida a Google Play: vive en privado/ (fuera de Git). Ver privado/keystore.properties.
+def keystorePropsFile = rootProject.file('../privado/keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) keystorePropsFile.withInputStream { keystoreProps.load(it) }
+
 android {
-    namespace = "io.github.mathiasgbo.gymapp"
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile rootProject.file('../privado/' + keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+    namespace = "com.mgb.temple"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.mathiasgbo.gymapp"
+        applicationId "com.mgb.temple"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // scripts/build-aab.mjs pasa versionCode (siempre creciente) y versionName (de package.json).
+        versionCode((project.findProperty('versionCode') ?: '1') as Integer)
+        versionName((project.findProperty('versionName') ?: '1.0.0') as String)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,6 +34,7 @@ android {
     }
     buildTypes {
         release {
+            if (keystorePropsFile.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -1,4 +1,4 @@
-package io.github.mathiasgbo.gymapp;
+package com.mgb.temple;
 
 import com.getcapacitor.BridgeActivity;
 

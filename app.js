@@ -167,7 +167,7 @@ function viewHome() {
   const food = foodSummaryLine(date);
 
   return `
-    ${topbar('Gym', null, gear)}
+    ${topbar('Temple', null, gear)}
     ${dateBanner()}
     ${deloadBanner()}
     ${date === todayStr() ? mealPrepBanner() : ''}
@@ -675,7 +675,7 @@ document.addEventListener('click', async ev => {
   } else if (action === 'video-del' && ctx) {
     if (confirm('¿Quitar el video guardado de este ejercicio?')) { await vdel(ctx.e.key); showVideo(ctx.e.key); }
   } else if (action === 'export' && env.native) {
-    try { await native.shareFile(`gym-backup-${todayStr()}.json`, JSON.stringify(state, null, 2)); }
+    try { await native.shareFile(`temple-backup-${todayStr()}.json`, JSON.stringify(state, null, 2)); }
     catch (err) { if (!/cancel/i.test(err.message)) alert('No se pudo exportar: ' + err.message); }
   } else if (action === 'health-connect') {
     try {
@@ -692,7 +692,7 @@ document.addEventListener('click', async ev => {
     syncSleep(activeDate(), true);
   } else if (action === 'export') {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `gym-backup-${todayStr()}.json` });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `temple-backup-${todayStr()}.json` });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   } else if (action === 'reset-routine') {

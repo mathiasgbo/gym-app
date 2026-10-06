@@ -1,7 +1,7 @@
 {
-  "name": "Gym — Mi rutina",
-  "short_name": "Gym",
-  "description": "Rutina, registro de pesos y videos, offline.",
+  "name": "Temple — Entrená, comé, descansá",
+  "short_name": "Temple",
+  "description": "Rutina, alimentación y progreso. Funciona sin conexión.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

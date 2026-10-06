@@ -1,6 +1,6 @@
 {
-  "appId": "io.github.mathiasgbo.gymapp",
-  "appName": "Gym",
+  "appId": "com.mgb.temple",
+  "appName": "Temple",
   "webDir": "www",
   "android": {
     "backgroundColor": "#111418"

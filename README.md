@@ -1,4 +1,4 @@
-# Gym — Mi rutina
+# Temple
 
 App web instalable (PWA) para Android: rutina, registro de pesos, videos offline y sugerencias de progresión.
 
@@ -38,5 +38,15 @@ npm install
 npm run apk
 ```
 
-La APK queda en `release/Gym.apk`. `npm run apk` copia la web a `www/`, sincroniza el proyecto
+La APK queda en `release/Temple.apk`. `npm run apk` (APK de prueba, debug) copia la web a `www/`, sincroniza el proyecto
 `android/` y compila. Gradle descarga solo el Java 21 que piden los plugins.
+
+## Google Play (prueba interna)
+
+```bash
+npm run aab
+```
+
+Genera `release/Temple.aab` firmado con la clave de subida (`privado/temple-upload.jks` +
+`privado/keystore.properties`, ambos fuera de Git). El `versionCode` sube solo en cada build.
+Material de la ficha y respuestas de los formularios: [play/ficha.md](play/ficha.md).

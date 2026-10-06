@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Gym</string>
-    <string name="title_activity_main">Gym</string>
-    <string name="package_name">io.github.mathiasgbo.gymapp</string>
-    <string name="custom_url_scheme">io.github.mathiasgbo.gymapp</string>
+    <string name="app_name">Temple</string>
+    <string name="title_activity_main">Temple</string>
+    <string name="package_name">com.mgb.temple</string>
+    <string name="custom_url_scheme">com.mgb.temple</string>
 </resources>

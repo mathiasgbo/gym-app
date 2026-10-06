@@ -1,13 +1,14 @@
 {
-  "name": "gym-app",
+  "name": "temple",
   "version": "1.0.0",
   "private": true,
-  "description": "App de rutina de gimnasio: web (PWA) y Android (Capacitor).",
+  "description": "Temple: rutina, alimentación y progreso. Web (PWA) y Android (Capacitor).",
   "type": "module",
   "scripts": {
     "build:www": "node scripts/build-www.mjs",
     "sync": "npm run build:www && cap sync android",
-    "apk": "npm run sync && node scripts/build-apk.mjs"
+    "apk": "npm run sync && node scripts/build-android.mjs apk",
+    "aab": "npm run sync && node scripts/build-android.mjs aab"
   },
   "dependencies": {
     "@capacitor/android": "8.5.2",
