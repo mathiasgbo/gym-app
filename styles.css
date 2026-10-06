@@ -454,3 +454,10 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .ob-card.pick { width: 100%; }
 .ob-card.pick.on { box-shadow: 0 0 0 2px var(--accent); }
 .ob-card.pick small { display: block; }
+
+/* Código de barras */
+.scan-row { display: flex; gap: 8px; margin: 0 0 12px; }
+.scan-row .btn { flex: 1; }
+#toast { position: fixed; left: 50%; top: calc(80px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 20;
+  padding: 10px 18px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); box-shadow: 0 6px 24px #0008; font-size: 15px; }
+#toast[hidden] { display: none; }

@@ -31,6 +31,8 @@ Temple junta todo lo que hace a tu progreso: entrenamiento, alimentación y desc
 🍽️ COMÉ SEGÚN TU PLAN
 • Cargá tu plan de alimentación por porciones y marcá lo que comés en cada comida.
 • Contador de agua con recordatorios y botón "Tomé un vaso" en la notificación.
+• Base de más de 200 alimentos de Argentina y Uruguay, calorías y macros del día.
+• Escaneá el código de barras de productos envasados (datos de Open Food Facts).
 • Horas de sueño automáticas desde Health Connect (Samsung Health, Zepp y otras apps).
 
 📈 MIRÁ CÓMO PROGRESÁS
@@ -64,6 +66,7 @@ Temple funciona sin conexión.
 
 ### Seguridad de los datos
 - ¿Recopila o comparte datos del usuario? → **No.**
+  Al escanear o ingresar un código de barras, la app consulta **solo el número del producto** en Open Food Facts (api pública, sin cuenta ni identificadores del usuario). Un código de producto no es un dato del usuario.
   Todo se procesa y guarda en el dispositivo; nada se transmite fuera del teléfono (según la definición de Google, el procesamiento solo local no cuenta como "recopilación").
 - ¿Los datos se encriptan en tránsito? → No aplica (no hay transmisión).
 - ¿Se pueden borrar? → Sí: desinstalando la app o borrando los datos desde Ajustes de Android.

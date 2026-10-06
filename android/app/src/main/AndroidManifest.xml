@@ -25,6 +25,9 @@
 
         </activity>
 
+        <!-- Escáner de códigos de Google (Play Services): se descarga al instalar la app. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

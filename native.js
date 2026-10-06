@@ -93,6 +93,26 @@ export function onWaterNotification(cb) {
   });
 }
 
+// ---------- Código de barras ----------
+
+// Escáner de Google (Play Services): abre su propia cámara, así que la app no necesita permiso de cámara.
+// Devuelve el código leído, o null si se canceló.
+export async function scanBarcode() {
+  const B = plugin('BarcodeScanner');
+  const { available } = await B.isGoogleBarcodeScannerModuleAvailable();
+  if (!available) {
+    await B.installGoogleBarcodeScannerModule();
+    throw new Error('Se está descargando el lector de códigos de Google. Probá de nuevo en unos segundos.');
+  }
+  try {
+    const { barcodes } = await B.scan({ formats: ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E'] });
+    return barcodes[0]?.rawValue || null;
+  } catch (err) {
+    if (/cancel/i.test(err.message)) return null;
+    throw err;
+  }
+}
+
 // ---------- Selector de archivos ----------
 
 // En la app de Android, los <input type="file"> de la WebView abren el selector pero el archivo

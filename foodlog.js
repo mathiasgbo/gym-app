@@ -2,7 +2,10 @@
 //   #/add/<comida>                     → buscar
 //   #/add/<comida>/<alimento>[/<i>]    → elegir porción y cantidad (con <i>: editar el registro i)
 //   #/newfood/<comida>                 → crear un alimento propio
-import { state, save, ui, esc, num, parseNum, activeDate, topbar, dateBanner } from './store.js';
+// También: escanear o ingresar el código de barras de un producto envasado (Open Food Facts).
+import { state, save, ui, esc, num, parseNum, activeDate, topbar, dateBanner, env } from './store.js';
+import { lookupBarcode, localByCode, saveProduct } from './off.js';
+import * as native from './native.js';
 import { FOOD_CATS, norm, allFoods, findFood, nutrients, searchFoods } from './foods.js';
 import { plan, mealEntry } from './food.js';
 
@@ -14,6 +17,44 @@ const grams = g => `${num(Math.round(g))} g`;
 let query = '';
 let tab = null;            // recientes | favoritos | todos | categoría
 let sel = null;            // { key, pi, q } porción elegida en la pantalla de cantidad
+let prefill = null;        // datos para "Nuevo alimento" cuando un código no se encontró
+
+// Aviso flotante breve ("Buscando el producto…").
+function toast(text) {
+  let el = document.getElementById('toast');
+  if (!el) { el = Object.assign(document.createElement('div'), { id: 'toast' }); document.body.append(el); }
+  el.textContent = text || '';
+  el.hidden = !text;
+}
+
+// Código leído o tipeado → producto. Primero busca en lo guardado, después en Open Food Facts.
+async function openBarcode(meal, raw) {
+  const code = String(raw || '').replace(/\D/g, '');
+  if (code.length < 8) { alert('Ese código no parece válido (tiene que tener 8 a 13 números).'); return; }
+  const local = localByCode(code);
+  if (local) { location.hash = `#/add/${meal}/${local.id}`; return; }
+  toast('Buscando el producto…');
+  try {
+    const r = await lookupBarcode(code);
+    if (r.food) {
+      saveProduct(r.food);
+      location.hash = `#/add/${meal}/${r.food.id}`;
+    } else {
+      prefill = {
+        code,
+        name: r.found ? [r.name, r.brand].filter(Boolean).join(' · ') : '',
+        msg: r.found
+          ? 'Ese producto está en Open Food Facts pero sin tabla nutricional. Completá los valores de la etiqueta.'
+          : 'No encontré ese código en Open Food Facts. Cargalo con los valores de la etiqueta y la próxima vez lo reconoce.',
+      };
+      location.hash = `#/newfood/${meal}`;
+    }
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    toast(null);
+  }
+}
 
 // ---------- Búsqueda ----------
 
@@ -52,6 +93,10 @@ function viewSearch(meal) {
     <div class="search-box">
       <input type="search" data-field="food-q" value="${esc(query)}" placeholder="Buscar: milanesa, banana, arroz…" autocomplete="off" enterkeyhint="search">
     </div>
+    <div class="scan-row">
+      ${env.native ? `<button class="btn primary" data-action="barcode-scan" data-meal="${esc(meal)}">📷 Escanear código</button>` : ''}
+      <button class="btn ${env.native ? 'ghost' : ''}" data-action="barcode-type" data-meal="${esc(meal)}">Ingresar código de barras</button>
+    </div>
     <div class="chips scroll-x food-tabs">${tabs}</div>
     <div class="list" id="food-results">${resultRows(meal)}</div>
     <a class="btn block" href="#/newfood/${esc(meal)}">+ Crear un alimento</a>
@@ -72,13 +117,13 @@ function viewPortion(meal, id, idx) {
   const [, g] = food.portions[sel.pi] || food.portions[0];
   const n = nutrients(food, g * sel.q);
   const chips = food.portions.map(([pl, pg], i) =>
-    `<button class="chip ${i === sel.pi ? 'on' : ''}" data-action="food-portion" data-pi="${i}">${esc(pl)}${food.noGrams ? "" : ` <small class="inline">${grams(pg)}</small>`}</button>`).join('');
+    `<button class="chip ${i === sel.pi ? 'on' : ''}" data-action="food-portion" data-pi="${i}">${esc(pl)}${food.noGrams || /^\d+ g$/.test(pl) ? "" : ` <small class="inline">${grams(pg)}</small>`}</button>`).join('');
 
   return `
     ${topbar(food.name, `#/add/${esc(meal)}`)}
     ${dateBanner()}
     <section class="card">
-      <small>${CAT_LABEL[food.cat] || ''}${food.custom ? ' · alimento propio' : ''}</small>
+      <small>${CAT_LABEL[food.cat] || ''}${food.source === 'off' ? ' · producto escaneado' : food.custom ? ' · alimento propio' : ''}</small>
       <h3 class="label">Porción</h3>
       <div class="chips">${chips}</div>
       <h3 class="label">Cantidad</h3>
@@ -96,6 +141,7 @@ function viewPortion(meal, id, idx) {
       ${food.noGrams ? "" : `<p class="muted small center">${grams(g * sel.q)} en total</p>`}
       <button class="btn primary block" data-action="food-add" data-meal="${esc(meal)}" data-id="${esc(id)}" data-idx="${editing ? idx : ''}">${editing ? 'Guardar' : `Agregar a ${esc(mealName(meal))}`}</button>
       ${editing ? `<button class="btn block danger" data-action="food-remove" data-meal="${esc(meal)}" data-idx="${idx}">Quitar de la comida</button>` : ''}
+      ${food.source === 'off' ? `<p class="muted small center">Datos de <a href="https://world.openfoodfacts.org/product/${esc(food.code)}" target="_blank" rel="noopener">Open Food Facts</a> (ODbL) · código ${esc(food.code)}</p>` : ''}
       ${food.custom ? `<button class="btn small ghost danger" data-action="custom-del" data-id="${esc(id)}" data-meal="${esc(meal)}">Eliminar este alimento propio</button>` : ''}
     </section>`;
 }
@@ -108,11 +154,13 @@ export function viewAddFood(meal, id, idx) {
 // ---------- Alimento propio ----------
 
 export function viewNewFood(meal) {
-  const cats = FOOD_CATS.map(([id, l]) => `<option value="${id}">${l}</option>`).join('');
+  const cats = FOOD_CATS.map(([id, l]) => `<option value="${id}" ${id === 'otro' && prefill ? 'selected' : ''}>${l}</option>`).join('');
   return `
     ${topbar('Nuevo alimento', `#/add/${esc(meal)}`)}
+    ${prefill?.msg ? `<p class="note">${esc(prefill.msg)}</p>` : ''}
     <form class="card form" data-form="newfood" data-meal="${esc(meal)}">
-      <label>Nombre<input name="name" required maxlength="60" placeholder="Ej: Yogur Ser con cereales"></label>
+      <label>Nombre<input name="name" required maxlength="60" placeholder="Ej: Yogur Ser con cereales" value="${esc(prefill?.name || '')}"></label>
+      ${prefill?.code ? `<p class="muted small">Código de barras: ${esc(prefill.code)}</p>` : ''}
       <label>Categoría<select name="cat">${cats}</select></label>
       <div class="grid2">
         <label>Porción<input name="portion" value="1 porción" maxlength="30"></label>
@@ -150,7 +198,14 @@ document.addEventListener('click', ev => {
   const btn = ev.target.closest('[data-action]');
   if (!btn || btn.tagName === 'INPUT') return;
   const a = btn.dataset.action;
-  if (a === 'food-tab') {
+  if (a === 'barcode-scan') {
+    native.scanBarcode().then(code => code && openBarcode(btn.dataset.meal, code)).catch(err => alert(err.message));
+    return;
+  } else if (a === 'barcode-type') {
+    const code = prompt('Código de barras (los números debajo de las barras):');
+    if (code) openBarcode(btn.dataset.meal, code);
+    return;
+  } else if (a === 'food-tab') {
     tab = btn.dataset.tab;
     query = '';
     ui.render({ keep: true });
@@ -214,9 +269,11 @@ document.addEventListener('submit', ev => {
     id: `c-${Date.now().toString(36)}`, name, cat: v.cat, custom: true,
     k: per.map(x => Math.round(x * 100 / base * 10) / 10),
     portions: [[v.portion.trim() || '1 porción', base]],
-    terms: norm(name),
+    terms: norm(`${name} ${prefill?.code || ''}`),
     noGrams: !(g > 0),
+    ...(prefill?.code ? { code: prefill.code } : {}),
   };
+  prefill = null;
   state.foods.custom.push(food);
   save();
   location.hash = `#/add/${form.dataset.meal}/${food.id}`;

@@ -4,7 +4,7 @@ import { cp, mkdir, rm } from 'node:fs/promises';
 
 const FILES = [
   'index.html', 'styles.css', 'manifest.webmanifest', 'privacypolicy.html',
-  'app.js', 'store.js', 'routine.js', 'food.js', 'calendar.js', 'anthro.js', 'anthro-parse.js', 'native.js', 'profile.js', 'foods.js', 'foodlog.js', 'nutrition.js',
+  'app.js', 'store.js', 'routine.js', 'food.js', 'calendar.js', 'anthro.js', 'anthro-parse.js', 'native.js', 'profile.js', 'foods.js', 'foodlog.js', 'nutrition.js', 'off.js',
   'icons', 'lib', 'fonts',
 ];
 
