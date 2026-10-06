@@ -7,8 +7,10 @@ let step = 0;
 let editing = false;
 let draft = null; // valores que se van cargando; se recalculan si cambia el estado (por ejemplo, al restaurar un backup)
 let error = '';
+let notice = ''; // aviso positivo (por ejemplo, "backup restaurado")
 
 export const needsProfile = () => !state.profile || editing;
+export const setNotice = text => { notice = text; };
 
 export function editProfile() {
   editing = true;
@@ -92,6 +94,7 @@ export function viewOnboarding() {
         ${editing ? '<button class="ob-link" type="button" data-action="ob-cancel">Cancelar</button>' : ''}
       </div>
       <form class="ob-step" data-form="ob" novalidate>
+        ${notice ? `<div class="ob-ok">${esc(notice)}</div>` : ''}
         ${STEPS[step]()}
         <p class="ob-err" role="alert">${esc(error)}</p>
         <div class="ob-actions">
@@ -130,6 +133,7 @@ function finish() {
   editing = false;
   step = 0;
   draft = null;
+  notice = '';
   if (location.hash === '#/' || !location.hash) ui.render(); else location.hash = '#/';
 }
 

@@ -93,6 +93,51 @@ export function onWaterNotification(cb) {
   });
 }
 
+// ---------- Selector de archivos ----------
+
+// En la app de Android, los <input type="file"> de la WebView abren el selector pero el archivo
+// elegido nunca llega a la página. Este puente usa el selector nativo y le entrega los archivos
+// al mismo input (con su evento "change"), así el resto del código no cambia.
+const EXT_TYPES = { '.pdf': ['application/pdf'], '.json': ['application/json', 'application/octet-stream'] };
+
+function acceptToTypes(accept) {
+  const types = new Set();
+  for (const a of (accept || '').split(',').map(s => s.trim()).filter(Boolean)) {
+    for (const t of EXT_TYPES[a] || (a.startsWith('.') ? [] : [a])) types.add(t);
+  }
+  if (types.has('application/json')) types.add('application/octet-stream'); // algunos proveedores no reconocen .json
+  return types.size ? [...types] : undefined;
+}
+
+export function useNativeFilePicker() {
+  document.addEventListener('click', async ev => {
+    const input = ev.target.matches?.('input[type=file]') ? ev.target : ev.target.closest('label')?.querySelector('input[type=file]');
+    if (!input) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    let picked;
+    try {
+      picked = await plugin('FilePicker').pickFiles({ types: acceptToTypes(input.accept), limit: input.multiple ? 0 : 1 });
+    } catch (err) {
+      if (!/cancel/i.test(err.message)) alert('No se pudo abrir el archivo: ' + err.message);
+      return;
+    }
+    if (!picked.files.length) return;
+    const dt = new DataTransfer();
+    for (const f of picked.files) {
+      const blob = await (await fetch(f.webPath)).blob();
+      dt.items.add(new File([blob], f.name, { type: f.mimeType || blob.type }));
+    }
+    // Mientras el selector estaba abierto la pantalla pudo redibujarse: si el input ya no está
+    // en la página, se usa el equivalente actual (mismo data-action).
+    const target = input.isConnected ? input
+      : document.querySelector(`input[type=file][data-action="${CSS.escape(input.dataset.action || '')}"]`);
+    if (!target) return;
+    target.files = dt.files;
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+  }, true);
+}
+
 // ---------- Ciclo de vida y archivos ----------
 
 export function onResume(cb) {

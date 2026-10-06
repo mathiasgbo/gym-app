@@ -6,7 +6,7 @@ import {
   doneSets, unitLabel, fmtSet, exerciseNames, topbar, gear, chart,
   ICONS, brandbar, greeting, profileAge,
 } from './store.js';
-import { needsProfile, viewOnboarding, editProfile } from './profile.js';
+import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
 import { anthroCard, viewBody } from './anthro.js';
@@ -628,8 +628,13 @@ document.addEventListener('change', async ev => {
       const data = JSON.parse(await t.files[0].text());
       if (validPlan(data)) throw new Error('Ese archivo es un plan de alimentación: cargalo desde "Plan de alimentación".');
       if (!data.routine?.days) throw new Error('El archivo no parece un backup de esta app.');
-      if (!confirm('Esto reemplaza todos tus datos actuales por los del backup. ¿Seguir?')) return;
+      const hasData = Object.keys(state.logs).length || state.anthro?.length;
+      if (hasData && !confirm('Esto reemplaza todos tus datos actuales por los del backup. ¿Seguir?')) return;
       replaceState(data);
+      const days = Object.keys(state.logs).length, meds = state.anthro?.length || 0;
+      const summary = `${days} ${days === 1 ? 'día' : 'días'} de registros${meds ? `, ${meds} ${meds === 1 ? 'medición' : 'mediciones'}` : ''}${state.food.plan ? ' y tu plan de alimentación' : ''}`;
+      if (needsProfile()) setNotice(`✓ Backup restaurado: ${summary}. Completá tu perfil para entrar.`);
+      else alert(`Backup restaurado: ${summary}.`);
       location.hash = '#/';
       render();
     } catch (err) { alert('No se pudo importar: ' + err.message); }
@@ -801,6 +806,7 @@ async function syncSleep(date, force = false) {
 env.native = await native.initNative().catch(() => false);
 render();
 if (env.native) {
+  native.useNativeFilePicker();
   if (state.settings.healthSleep) env.health = await native.healthAuthorized();
   native.onWaterNotification(kind => {
     if (kind === 'glass') {
@@ -811,7 +817,14 @@ if (env.native) {
     location.hash = '#/food';
     render({ keep: true });
   });
-  native.onResume(() => { sleepSynced.delete(todayStr()); syncSleep(todayStr()); render({ keep: true }); });
+  // Al volver a la app: traer el sueño y redibujar solo si cambió el día. Redibujar siempre rompía
+  // la carga de archivos (el selector "vuelve" a la app y el input elegido desaparecía).
+  let shownDay = todayStr();
+  native.onResume(() => {
+    sleepSynced.delete(todayStr());
+    syncSleep(todayStr());
+    if (todayStr() !== shownDay) { shownDay = todayStr(); render({ keep: true }); }
+  });
   syncSleep(todayStr());
   render();
 } else if ('serviceWorker' in navigator) {

@@ -1,6 +1,6 @@
 {
   "name": "temple",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Temple: rutina, alimentación y progreso. Web (PWA) y Android (Capacitor).",
   "type": "module",
@@ -17,6 +17,7 @@
     "@capacitor/filesystem": "8.1.4",
     "@capacitor/local-notifications": "8.3.1",
     "@capacitor/share": "8.0.3",
+    "@capawesome/capacitor-file-picker": "8.1.0",
     "@capgo/capacitor-health": "8.11.4"
   },
   "devDependencies": {
