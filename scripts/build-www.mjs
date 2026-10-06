@@ -4,8 +4,8 @@ import { cp, mkdir, rm } from 'node:fs/promises';
 
 const FILES = [
   'index.html', 'styles.css', 'manifest.webmanifest', 'privacypolicy.html',
-  'app.js', 'store.js', 'routine.js', 'food.js', 'calendar.js', 'anthro.js', 'anthro-parse.js', 'native.js',
-  'icons', 'lib',
+  'app.js', 'store.js', 'routine.js', 'food.js', 'calendar.js', 'anthro.js', 'anthro-parse.js', 'native.js', 'profile.js',
+  'icons', 'lib', 'fonts',
 ];
 
 await rm('www', { recursive: true, force: true });

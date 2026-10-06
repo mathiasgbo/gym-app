@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Temple">
+  <defs>
+    <!-- Colores de revenido del acero: paja → bronce → violeta → azul -->
+    <linearGradient id="temper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3cf6b"/>
+      <stop offset="0.4" stop-color="#e0904f"/>
+      <stop offset="0.75" stop-color="#a866d6"/>
+      <stop offset="1" stop-color="#5b8def"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#temper)">
+    <!-- frontón -->
+    <path d="M32 7 L57 21 L7 21 Z"/>
+    <!-- arquitrabe = barra con discos -->
+    <rect x="9" y="24.5" width="46" height="3.5" rx="1"/>
+    <rect x="5" y="20.5" width="4.5" height="11.5" rx="1"/>
+    <rect x="54.5" y="20.5" width="4.5" height="11.5" rx="1"/>
+    <rect x="10.5" y="22.5" width="2.5" height="7.5" rx="0.8"/>
+    <rect x="51" y="22.5" width="2.5" height="7.5" rx="0.8"/>
+    <!-- columnas -->
+    <rect x="16" y="32" width="6" height="19" rx="1"/>
+    <rect x="29" y="32" width="6" height="19" rx="1"/>
+    <rect x="42" y="32" width="6" height="19" rx="1"/>
+    <!-- base -->
+    <rect x="10" y="53" width="44" height="4.5" rx="1"/>
+  </g>
+</svg>

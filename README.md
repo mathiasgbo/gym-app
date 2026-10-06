@@ -6,6 +6,8 @@ App web instalable (PWA) para Android: rutina, registro de pesos, videos offline
 - `store.js`: estado, utilidades y fecha activa (para cargar días pasados).
 - `app.js`: router, entreno (series, sugerencias de doble progresión, videos), progreso y ajustes.
 - `food.js`: alimentación (comidas por porciones, agua, sueño, meal prep).
+- `profile.js`: perfil y pantalla de bienvenida (nombre, edad, peso/altura o antropometría).
+- `fonts/`: Barlow Condensed (OFL) para títulos y números; `icons/logo.svg`: logo de Temple.
 - `calendar.js`: calendario mensual, detalle de un día y resumen semanal.
 - `anthro.js` / `anthro-parse.js`: importa los informes de antropometría (PDF) y compara mediciones. `anthro-parse.js` se puede probar con node.
 - `lib/`: pdf.js (Mozilla, Apache-2.0) para leer los PDF en el teléfono.

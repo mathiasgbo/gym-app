@@ -4,7 +4,9 @@ import {
   esc, num, parseNum, roundTo, pad, todayStr, toDate, addDays, fmtDate, isUrl,
   activeDate, setActiveDate, dayLog, ensureLog, dateBanner,
   doneSets, unitLabel, fmtSet, exerciseNames, topbar, gear, chart,
+  ICONS, brandbar, greeting, profileAge,
 } from './store.js';
+import { needsProfile, viewOnboarding, editProfile } from './profile.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
 import { anthroCard, viewBody } from './anthro.js';
@@ -167,11 +169,12 @@ function viewHome() {
   const food = foodSummaryLine(date);
 
   return `
-    ${topbar('Temple', null, gear)}
+    ${brandbar()}
     ${dateBanner()}
     ${deloadBanner()}
     ${date === todayStr() ? mealPrepBanner() : ''}
     <section class="hero">
+      ${date === todayStr() ? `<div class="greet">${greeting()}</div>` : ''}
       <div class="muted">${DOW[dow]} · ${fmtDate(date)}</div>
       ${today
         ? `<h2>${esc(today.title)}</h2><a class="btn primary big" href="#/day/${today.id}">Empezar entrenamiento</a>`
@@ -357,9 +360,22 @@ function viewProgress(key) {
       </div>
       ${chart(bodyPts)}
       <small>${lastBody ? `Último: ${num(state.body[lastBody])} kg (${fmtDate(lastBody)})` : 'Pesate 1 vez por semana, en ayunas, siempre el mismo día.'}
-        ${delta != null ? ` · ${delta >= 0 ? '+' : ''}${num(Math.round(delta * 10) / 10)} kg en 4 semanas` : ''}</small>
+        ${delta != null ? ` · ${delta >= 0 ? '+' : ''}${num(Math.round(delta * 10) / 10)} kg en 4 semanas` : ''}
+        ${lastBody && state.profile?.height ? ` · IMC ${num(Math.round(state.body[lastBody] / (state.profile.height / 100) ** 2 * 10) / 10)}` : ''}</small>
     </section>
     ${exercisesSection(names)}`;
+}
+
+function profileCard() {
+  const p = state.profile;
+  if (!p) return '';
+  const lastBody = Object.keys(state.body).sort().at(-1);
+  return `
+    <section class="card">
+      <h3>Perfil</h3>
+      <p class="muted small">${esc(p.name)} · ${profileAge()} años · ${num(p.height)} cm${lastBody ? ` · ${num(state.body[lastBody])} kg` : ''}</p>
+      <button class="btn small" data-action="profile-edit">Editar perfil</button>
+    </section>`;
 }
 
 let histFilter = 'all'; // día de la rutina elegido en el filtro de ejercicios
@@ -457,6 +473,7 @@ function viewSettings() {
   const dowOpts = ['<option value="">No recordar</option>', ...DOW.map((d, k) => `<option value="${k}" ${prep != null && prep !== '' && Number(prep) === k ? 'selected' : ''}>${d}</option>`)].join('');
   return `
     ${topbar('Ajustes', '#/')}
+    ${profileCard()}
     ${env.native ? nativeSettings() : ''}
     <section class="card">
       <h3>Plan de alimentación</h3>
@@ -495,7 +512,7 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 
 // ---------- Router ----------
 
-const TABS = [['', '🏋️', 'Entreno'], ['food', '🍽️', 'Comida'], ['cal', '📅', 'Calendario'], ['hist', '📈', 'Progreso']];
+const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
 const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '' };
 
 function render({ keep = false } = {}) {
@@ -503,6 +520,14 @@ function render({ keep = false } = {}) {
   const open = keep ? [...$app.querySelectorAll('details[data-keep]')].map(d => [d.dataset.keep, d.open]) : [];
   const y = window.scrollY;
   ctx = null;
+  // Sin perfil (primera vez) o editándolo: pantalla de bienvenida, sin pestañas.
+  const onboarding = needsProfile();
+  document.body.classList.toggle('onboarding', onboarding);
+  if (onboarding) {
+    $app.innerHTML = viewOnboarding();
+    if (keep) window.scrollTo(0, y); else window.scrollTo(0, 0);
+    return;
+  }
   const html = {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEdit(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
@@ -510,7 +535,7 @@ function render({ keep = false } = {}) {
   }[view];
   $app.innerHTML = html ? html() : notFound();
   $tabs.innerHTML = TABS.map(([v, icon, label]) =>
-    `<a href="#/${v}" class="${TAB_OF[view] === v ? 'on' : ''}"><span>${icon}</span>${label}</a>`).join('');
+    `<a href="#/${v}" class="${TAB_OF[view] === v ? 'on' : ''}">${icon}${label}</a>`).join('');
   if (keep) {
     for (const [k, isOpen] of open) {
       const d = $app.querySelector(`details[data-keep="${CSS.escape(k)}"]`);
@@ -643,6 +668,7 @@ document.addEventListener('click', async ev => {
 
   if (action === 'rest-stop') stopRest();
   else if (action === 'date-today') { setActiveDate(null); render(); }
+  else if (action === 'profile-edit') { editProfile(); render(); }
   else if (action === 'hist-filter') { histFilter = btn.dataset.day; render({ keep: true }); }
   else if (action === 'deload-on') { deloadOn(); render(); }
   else if (action === 'deload-off') { deloadOff(); render(); }

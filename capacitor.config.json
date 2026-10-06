@@ -3,7 +3,7 @@
   "appName": "Temple",
   "webDir": "www",
   "android": {
-    "backgroundColor": "#111418"
+    "backgroundColor": "#12110f"
   },
   "plugins": {
     "LocalNotifications": {
