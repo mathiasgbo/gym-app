@@ -2,7 +2,8 @@
 
 App web instalable (PWA) para Android: rutina, registro de pesos, videos offline y sugerencias de progresión.
 
-- `routine.js`: rutina por defecto (Mes 2).
+- `routine.js`: rutina inicial vacía (cada persona arma la suya; las rutinas personales van en `privado/`).
+- `templates.js`: plantillas (Full Body 3 días, Torso/Pierna 4, Empuje/Tirón/Piernas 3 y 6, En casa).
 - `exercises.js`: biblioteca de ~105 ejercicios (músculo, equipamiento, tipo y valores sugeridos).
 - `routines.js`: varias rutinas (activa + archivadas), duplicar, en blanco, exportar/importar como archivo.
 - `routine-editor.js`: editor de rutina (días, modo semana fija / rotación, ejercicios, reemplazos, ejercicios propios, reglas).

@@ -21,7 +21,8 @@ Capturas de pantalla (6, con datos de ejemplo): `play/screenshots/`. No se suben
 Temple junta todo lo que hace a tu progreso: entrenamiento, alimentación y descanso. Tu cuerpo es tu templo.
 
 🏋️ ENTRENÁ CON UN PLAN
-• Tu rutina organizada por días, con series, repeticiones y notas.
+• Elegí una plantilla (Full Body, Torso/Pierna, Empuje/Tirón/Piernas, En casa) o armá tu rutina con una biblioteca de más de 100 ejercicios.
+• Días fijos de la semana o rotación A → B → C; varias rutinas y la opción de compartirlas.
 • Registrá peso y repeticiones de cada serie en segundos.
 • Sugerencias de progresión automáticas: cuándo subir peso, mantener o bajar.
 • Timer de descanso que vibra al terminar.

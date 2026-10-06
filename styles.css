@@ -481,3 +481,10 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .label-active { color: var(--accent); text-transform: uppercase; letter-spacing: .12em; font-family: var(--display); font-weight: 600; }
 .new-routine .ob-card { margin-bottom: 10px; }
 .text-icon { font-size: 22px; }
+
+/* Plantillas */
+.tpl-card { display: flex; margin-bottom: 10px; }
+.tpl-card small { display: block; }
+.tpl-list { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
+.tpl-list li { margin: 5px 0; }
+.card h3 .dow { margin-right: 6px; }

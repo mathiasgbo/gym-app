@@ -1,4 +1,3 @@
-import { DEFAULT_ROUTINE, ex, slug } from './routine.js';
 import {
   state, save, replaceState, ui, env, DOW,
   esc, num, parseNum, roundTo, pad, todayStr, toDate, addDays, fmtDate, isUrl,
@@ -9,7 +8,7 @@ import {
 } from './store.js';
 import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
 import { viewRoutine, viewRoutineDay, viewEditExercise, viewLibrary, viewReplace, viewNewExercise } from './routine-editor.js';
-import { viewRoutines, isRoutineFile } from './routines.js';
+import { viewRoutines, isRoutineFile, viewTemplates, viewTemplate, templateCards } from './routines.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { energy, avgKcal, ACTIVITY, GOALS } from './nutrition.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
@@ -183,15 +182,21 @@ function viewHome() {
       ${date === todayStr() ? `<div class="greet">${greeting()}</div>` : ''}
       <div class="muted">${DOW[dow]} · ${fmtDate(date)}</div>
       ${!R.days.length
-        ? `<h2>Sin rutina</h2><a class="btn primary big" href="#/routine">Armar mi rutina</a>`
+        ? `<h2>Armá tu rutina</h2><p class="muted">Elegí una plantilla, empezá de cero o importá la que te pasaron.</p>`
         : today
           ? `${R.mode === 'rotation' ? `<div class="muted small">Toca el día ${dayTag(today)}</div>` : ''}<h2>${esc(today.title)}</h2><a class="btn primary big" href="#/day/${today.id}">Empezar entrenamiento</a>`
           : `<h2>Día de descanso</h2><p class="muted">Podés hacer igual el cardio, o entrenar algún día de la lista.</p>`}
-      <label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}> Cardio hecho</label>
+      ${R.days.length ? `<label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}> Cardio hecho</label>` : ''}
       ${food ? `<a class="food-line" href="#/food">${food} <span class="chev">›</span></a>` : ''}
     </section>
-    <div class="section-head"><h3 class="section">${R.mode === 'rotation' ? 'Rotación' : 'Semana'}</h3><a class="small-link" href="#/routine">✎ Editar rutina</a></div>
-    <div class="list">${rows}</div>
+    ${R.days.length ? `<div class="section-head"><h3 class="section">${R.mode === 'rotation' ? 'Rotación' : 'Semana'}</h3><a class="small-link" href="#/routine">✎ Editar rutina</a></div>
+    <div class="list">${rows}</div>` : `
+    <h3 class="section">Plantillas</h3>
+    ${templateCards()}
+    <h3 class="section">Otras opciones</h3>
+    <a class="ob-card pick" href="#/routine"><span><b>Desde cero</b><small>Armá tus días y elegí los ejercicios de la biblioteca.</small></span></a>
+    <label class="ob-card pick"><span><b>Importar un archivo</b><small>Una rutina que te pasó tu entrenador o un amigo.</small></span>
+      <input type="file" accept="application/json,.json" data-action="routine-import" hidden></label>`}
     <details class="card info">
       <summary>${esc(R.name)} — reglas</summary>
       <dl>
@@ -500,9 +505,9 @@ function viewSettings() {
       <p class="muted small" id="storage">Calculando…</p>
     </section>
     <section class="card">
-      <h3>Rutina</h3>
-      <p class="muted small">Volver a la rutina original (Mes 2). Tu historial de pesos se mantiene.</p>
-      <button class="btn small danger" data-action="reset-routine">Restaurar rutina original</button>
+      <h3>Rutinas</h3>
+      <p class="muted small">Activa: ${esc(state.routine.name)}. Cambiá de rutina, creá una nueva o importá una.</p>
+      <a class="btn small" href="#/routines">Ver rutinas</a>
     </section>`;
 }
 
@@ -511,7 +516,7 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 // ---------- Router ----------
 
 const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
-const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', routine: '', routines: '', rday: '', lib: '', replace: '', newex: '' };
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', routine: '', routines: '', tpls: '', tpl: '', rday: '', lib: '', replace: '', newex: '' };
 
 function render({ keep = false } = {}) {
   const [, view = '', a, b, c, x] = (location.hash || '#/').split('/');
@@ -528,7 +533,7 @@ function render({ keep = false } = {}) {
   }
   const html = {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEditExercise(a, b, c),
-    routine: viewRoutine, routines: viewRoutines, rday: () => viewRoutineDay(a), lib: () => viewLibrary(a, b),
+    routine: viewRoutine, routines: viewRoutines, tpls: viewTemplates, tpl: () => viewTemplate(a), rday: () => viewRoutineDay(a), lib: () => viewLibrary(a, b),
     replace: () => viewReplace(a, b, c), newex: () => viewNewExercise(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
     hist: () => viewProgress(a), body: viewBody, settings: viewSettings,
@@ -735,12 +740,6 @@ document.addEventListener('click', async ev => {
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `temple-backup-${todayStr()}.json` });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  } else if (action === 'reset-routine') {
-    if (confirm('¿Restaurar la rutina original? Se pierden los cambios que hiciste a la rutina (no el historial).')) {
-      state.routine = structuredClone(DEFAULT_ROUTINE);
-      save();
-      location.hash = '#/';
-    }
   }
 });
 

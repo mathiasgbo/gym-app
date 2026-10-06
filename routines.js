@@ -2,7 +2,9 @@
 // El historial y la progresión van por ejercicio (no por rutina), así que cambiar de rutina no pierde nada.
 //   #/routines → lista, nueva (en blanco / duplicar / importar), activar, exportar, eliminar
 import { state, save, ui, esc, topbar, todayStr, fmtDate, rememberExercise, normalizeRoutine, env } from './store.js';
-import { findExercise } from './exercises.js';
+import { findExercise, EXERCISES } from './exercises.js';
+import { TEMPLATES, findTemplate, templateExercises, routineFromTemplate } from './templates.js';
+import { prescription } from './routine-editor.js';
 import * as native from './native.js';
 
 const ROUTINE_FILE = 'temple-routine';
@@ -22,11 +24,12 @@ function cloneRoutine(r, name) {
   return normalizeRoutine(c);
 }
 
-function activate(r) {
+export function activate(r) {
   const cur = state.routine;
   cur.days.forEach(d => d.exercises.forEach(rememberExercise)); // sus nombres siguen visibles en Progreso
   cur.archivedAt = todayStr();
-  state.routineArchive = [cur, ...archive().filter(x => x !== r)];
+  // Una rutina vacía (por ejemplo, la inicial) no se guarda en Archivadas
+  state.routineArchive = [...(cur.days.length && cur !== r ? [cur] : []), ...archive().filter(x => x !== r)];
   delete r.archivedAt;
   r.activeSince = todayStr();
   state.routine = r;
@@ -108,6 +111,8 @@ export function viewRoutines() {
     </section>
     <h3 class="section">Nueva rutina</h3>
     <div class="new-routine">
+      <a class="ob-card pick" href="#/tpls">
+        <span><b>Desde una plantilla</b><small>Full Body, Torso/Pierna, Empuje/Tirón/Piernas o En casa. Después la ajustás.</small></span></a>
       <button class="ob-card pick" data-action="routine-dup" data-id="active" data-use="1">
         <span><b>Duplicar la actual</b><small>Ideal para pasar al mes siguiente: copiás "${esc(R.name)}" y la ajustás.</small></span></button>
       <button class="ob-card pick" data-action="routine-blank">
@@ -121,15 +126,55 @@ export function viewRoutines() {
     <p class="muted small">Cambiar de rutina no borra nada: los pesos, el historial y las sugerencias de cada ejercicio se mantienen.</p>`;
 }
 
+// ---------- Plantillas ----------
+
+// Opciones para arrancar (inicio sin rutina y "Desde una plantilla").
+export function templateCards() {
+  return TEMPLATES.map(t => `
+    <a class="ob-card pick tpl-card" href="#/tpl/${t.id}">
+      <span><b>${esc(t.name)}</b><small>${esc(t.level)} · ${t.days.length} días</small><small>${esc(t.desc)}</small></span></a>`).join('');
+}
+
+export function viewTemplates() {
+  return `
+    ${topbar('Plantillas', state.routine.days.length ? '#/routines' : '#/')}
+    <p class="muted small">Elegí una para ver sus días y ejercicios. Después podés cambiar todo.</p>
+    ${templateCards()}`;
+}
+
+export function viewTemplate(id) {
+  const t = findTemplate(id);
+  if (!t) return `${topbar('Plantilla', '#/tpls')}<p class="muted">No existe.</p>`;
+  const DOWS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const days = t.days.map(d => `
+    <section class="card">
+      <h3><span class="dow">${DOWS[d.dow]}</span> ${esc(d.title)}</h3>
+      <ul class="tpl-list">${templateExercises(d).map(e => `<li>${esc(e.name)} <small class="inline">${prescription(e)}</small></li>`).join('')}</ul>
+    </section>`).join('');
+  return `
+    ${topbar(t.name, '#/tpls')}
+    <p class="muted">${esc(t.desc)} <b>${esc(t.level)}</b>.</p>
+    ${days}
+    <button class="btn primary block big" data-action="tpl-use" data-id="${t.id}">Usar esta plantilla</button>
+    <p class="muted small">Se crea como tu rutina activa${state.routine.days.length ? ` y "${esc(state.routine.name)}" queda archivada` : ''}. Los días de la semana, ejercicios, series y descansos se pueden cambiar en Mi rutina.</p>`;
+}
+
 // ---------- Eventos ----------
 
 document.addEventListener('click', ev => {
   const btn = ev.target.closest('[data-action]');
   if (!btn || btn.tagName === 'INPUT') return;
   const a = btn.dataset.action;
-  if (!a?.startsWith('routine-') || a === 'routine-mode' || a === 'routine-import') return;
+  if (a !== 'tpl-use' && (!a?.startsWith('routine-') || a === 'routine-mode' || a === 'routine-import')) return;
   const r = byId(btn.dataset.id);
 
+  if (a === 'tpl-use') {
+    const t = findTemplate(btn.dataset.id);
+    if (!t) return;
+    activate(routineFromTemplate(t));
+    location.hash = '#/';
+    return;
+  }
   if (a === 'routine-use') {
     if (!r || !confirm(`¿Pasar a "${r.name}"? "${state.routine.name}" queda archivada. Tus pesos e historial se mantienen.`)) return;
     activate(r);
@@ -149,7 +194,7 @@ document.addEventListener('click', ev => {
       ui.render({ keep: true });
     }
   } else if (a === 'routine-blank') {
-    if (!confirm(`Se crea una rutina en blanco y "${state.routine.name}" queda archivada. ¿Seguir?`)) return;
+    if (state.routine.days.length && !confirm(`Se crea una rutina en blanco y "${state.routine.name}" queda archivada. ¿Seguir?`)) return;
     activate(blankRoutine());
     location.hash = '#/routine';
   } else if (a === 'routine-export') {
