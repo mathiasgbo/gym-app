@@ -4,7 +4,7 @@ Paquete: `com.mgb.temple` · Pista: **Prueba interna** · Política de privacida
 https://mathiasgbo.github.io/gym-app/privacypolicy.html
 
 Archivos en esta carpeta: `icon-512.png` (ícono), `feature-graphic.png` (gráfico de funciones 1024×500).
-Las capturas de pantalla se generan aparte (`play/screenshots/`).
+Capturas de pantalla (6, con datos de ejemplo): `play/screenshots/`. No se suben a GitHub porque muestran el plan de alimentación.
 
 ---
 
@@ -75,6 +75,7 @@ Las capturas de pantalla se generan aparte (`play/screenshots/`).
 1. **Crear app** → nombre `Temple: rutina y progreso`, idioma español (Latinoamérica), App, Gratis.
 2. Completar **Configurar la app** con las respuestas de arriba.
 3. **Pruebas → Prueba interna → Testers:** crear una lista con tu mail de Google.
-4. **Crear versión** → aceptar **Firma de apps de Play** → subir `release/Temple.aab` → notas: "Primera versión".
-5. Revisar y **lanzar** a prueba interna.
-6. Abrir el **link de participación** desde el celu (con tu cuenta), aceptar e instalar desde Play Store.
+4. **Ficha de Play Store:** pegar los textos de arriba y subir ícono, gráfico de funciones y las 6 capturas.
+5. **Crear versión** → aceptar **Firma de apps de Play** → subir `release/Temple.aab` → notas: "Primera versión".
+6. Revisar y **lanzar** a prueba interna.
+7. Abrir el **link de participación** desde el celu (con tu cuenta), aceptar e instalar desde Play Store.
