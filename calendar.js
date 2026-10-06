@@ -1,7 +1,7 @@
 // Calendario mensual, resumen de un día y estadísticas semanales.
 import {
   state, ui, esc, num, pad, todayStr, toDate, addDays, fmtDateLong, dayLog, setActiveDate,
-  trainedOn, plannedDay, doneSets, fmtSet, exerciseNames, topbar, gear, DOW, baseKey,
+  trainedOn, plannedDay, doneSets, fmtSet, exerciseNames, topbar, gear, DOW, baseKey, dayTag,
 } from './store.js';
 import { plan, mealsFor, mealStatus, foodScore, dayPortions, waterMl, waterTarget } from './food.js';
 import { entryInfo } from './foods.js';
@@ -100,7 +100,7 @@ export function viewDate(d) {
 
   const editable = d <= today;
   const dayLinks = state.routine.days.map(x =>
-    `<button class="btn small ${p === x ? 'primary' : ''}" data-action="edit-date" data-date="${d}" data-go="#/day/${x.id}">${DOW[x.dow].slice(0, 3)} · ${esc(x.title)}</button>`).join('');
+    `<button class="btn small ${p === x ? 'primary' : ''}" data-action="edit-date" data-date="${d}" data-go="#/day/${x.id}">${dayTag(x)} · ${esc(x.title)}</button>`).join('');
 
   return `
     ${topbar(fmtDateLong(d), `#/cal/${d.slice(0, 7)}`)}
@@ -128,7 +128,7 @@ export function weekStats() {
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   return {
     trained: days.filter(trainedOn).length,
-    planned: days.filter(d => plannedDay(d)).length,
+    planned: state.routine.mode === 'rotation' ? Math.min(7, state.routine.days.length) : days.filter(d => plannedDay(d)).length,
     cardio: logged.filter(L => L.cardio).length,
     food: scores.length ? Math.round(avg(scores) * 100) : null,
     water: avg(water),

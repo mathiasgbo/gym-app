@@ -5,9 +5,10 @@ import {
   activeDate, setActiveDate, dayLog, ensureLog, dateBanner,
   doneSets, unitLabel, fmtSet, exerciseNames, topbar, gear, chart,
   baseKey, exEntry, ensureExEntry, exEntriesOn,
-  ICONS, brandbar, greeting, profileAge,
+  ICONS, brandbar, greeting, profileAge, dayFor, dayTag,
 } from './store.js';
 import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
+import { viewRoutine, viewRoutineDay, viewEditExercise, viewLibrary, viewReplace, viewNewExercise } from './routine-editor.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { energy, avgKcal, ACTIVITY, GOALS } from './nutrition.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
@@ -16,7 +17,6 @@ import { viewAddFood, viewNewFood } from './foodlog.js';
 import * as native from './native.js';
 
 const SECTIONS = [['main', 'Principal'], ['core', 'Core'], ['extra', 'Extra']];
-const TYPES = [['weight', 'Peso × reps'], ['reps', 'Solo reps (peso corporal)'], ['time', 'Tiempo (segundos)']];
 const $app = document.getElementById('app');
 const $tabs = document.getElementById('tabs');
 const $rest = document.getElementById('rest');
@@ -63,9 +63,10 @@ function suggest(e, isFirstHeavy) {
   const res = { w: top || null, r: Math.min(e.repMax, Math.max(e.repMin, minR + 1)), level: 'hold', last };
 
   if (e.type !== 'weight') {
-    const step = e.type === 'time' ? 5 : 1;
+    const step = e.type === 'time' ? 5 : e.type === 'min' ? 2 : 1;
     if (allTop) Object.assign(res, { level: 'up', r: e.repMax, text: e.type === 'time'
       ? `Llegaste a ${e.repMax} s en todas: sumá 5-10 s o probá una variante más difícil.`
+      : e.type === 'min' ? `Llegaste a ${e.repMax} min: sumá algunos minutos o subí la intensidad.`
       : `Llegaste a ${e.repMax} reps en todas: probá agregar peso o una variante más difícil.` });
     else res.text = `Buscá +${step} ${unitLabel(e)} por serie (objetivo: ${e.repMax} ${unitLabel(e)} en todas).`;
     return res;
@@ -112,7 +113,7 @@ function deloadBanner() {
     <div class="banner deload"><div><b>Semana de deload activa.</b> Mismo volumen, 60-70% del peso.</div>
     <button class="btn small" data-action="deload-off">Terminar deload</button></div>`;
   const w = weeksSinceDeload();
-  if (w < 5) return '';
+  if (w < (state.routine.deloadWeeks || 5)) return '';
   return `
     <div class="banner"><div>Llevás <b>${w} semanas</b> desde el último deload. Toca una semana suave.</div>
     <button class="btn small" data-action="deload-on">Empezar deload</button></div>`;
@@ -159,12 +160,13 @@ function viewHome() {
   const R = state.routine;
   const date = activeDate();
   const dow = toDate(date).getDay();
-  const today = R.days.find(d => d.dow === dow);
+  const today = dayFor(date);
   const log = dayLog();
-  const rows = [...R.days].sort((a, b) => a.dow - b.dow).map(d => {
+  const ordered = R.mode === 'rotation' ? R.days : [...R.days].sort((a, b) => ((a.dow ?? 9) || 7) - ((b.dow ?? 9) || 7));
+  const rows = ordered.map(d => {
     const n = d.exercises.filter(e => doneSets(exEntry(date, e.key, d.id)).length).length;
     return `<a class="row ${d === today ? 'today' : ''}" href="#/day/${d.id}">
-      <span class="dow">${DOW[d.dow].slice(0, 3)}</span>
+      <span class="dow">${dayTag(d)}</span>
       <span class="grow"><b>${esc(d.title)}</b><small>${d.exercises.length} ejercicios</small></span>
       ${n ? `<span class="pill">${n}/${d.exercises.length}</span>` : ''}
       <span class="chev">›</span></a>`;
@@ -179,13 +181,15 @@ function viewHome() {
     <section class="hero">
       ${date === todayStr() ? `<div class="greet">${greeting()}</div>` : ''}
       <div class="muted">${DOW[dow]} · ${fmtDate(date)}</div>
-      ${today
-        ? `<h2>${esc(today.title)}</h2><a class="btn primary big" href="#/day/${today.id}">Empezar entrenamiento</a>`
-        : `<h2>Día de descanso</h2><p class="muted">Podés hacer igual el cardio, o entrenar algún día de la lista.</p>`}
+      ${!R.days.length
+        ? `<h2>Sin rutina</h2><a class="btn primary big" href="#/routine">Armar mi rutina</a>`
+        : today
+          ? `${R.mode === 'rotation' ? `<div class="muted small">Toca el día ${dayTag(today)}</div>` : ''}<h2>${esc(today.title)}</h2><a class="btn primary big" href="#/day/${today.id}">Empezar entrenamiento</a>`
+          : `<h2>Día de descanso</h2><p class="muted">Podés hacer igual el cardio, o entrenar algún día de la lista.</p>`}
       <label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}> Cardio hecho</label>
       ${food ? `<a class="food-line" href="#/food">${food} <span class="chev">›</span></a>` : ''}
     </section>
-    <h3 class="section">Semana</h3>
+    <div class="section-head"><h3 class="section">${R.mode === 'rotation' ? 'Rotación' : 'Semana'}</h3><a class="small-link" href="#/routine">✎ Editar rutina</a></div>
     <div class="list">${rows}</div>
     <details class="card info">
       <summary>${esc(R.name)} — reglas</summary>
@@ -220,7 +224,7 @@ function viewDay(id) {
   }).join('');
 
   return `
-    ${topbar(`${DOW[d.dow]} — ${d.title}`, '#/', `<a class="icon" href="#/edit/${d.id}/new" aria-label="Agregar ejercicio">＋</a>`)}
+    ${topbar(`${state.routine.mode === 'week' && d.dow != null ? `${DOW[d.dow]} — ` : ''}${d.title}`, '#/', `<a class="icon" href="#/rday/${d.id}" aria-label="Editar día">✎</a>`)}
     ${dateBanner()}
     ${deloadBanner()}
     <p class="note">🔥 ${esc(state.routine.warmup)}</p>
@@ -264,7 +268,7 @@ function viewEx(dayId, idx) {
   const yt = `https://www.youtube.com/results?search_query=${encodeURIComponent(e.name + ' técnica')}`;
 
   return `
-    ${topbar(e.name, `#/day/${d.id}`, `<a class="icon" href="#/edit/${d.id}/${i}" aria-label="Editar ejercicio">✎</a>`)}
+    ${topbar(e.name, `#/day/${d.id}`, `<a class="icon" href="#/edit/${d.id}/${i}/ex" aria-label="Editar ejercicio">✎</a>`)}
     ${dateBanner()}
     <div class="meta">${target(e)}${e.heavy ? ' · <span class="tag">pesado</span>' : ''}</div>
     ${e.note ? `<p class="note warn">${esc(e.note)}</p>` : ''}
@@ -293,40 +297,6 @@ function viewEx(dayId, idx) {
       <p class="muted small">El video subido queda guardado en el teléfono y se ve sin señal. Los links necesitan internet.</p>
     </details>
     <nav class="pager">${prevBtn}${nextBtn}</nav>`;
-}
-
-function viewEdit(dayId, idx) {
-  const d = day(dayId);
-  if (!d) return notFound();
-  const isNew = idx === 'new';
-  const e = isNew ? ex('', 3, '10-12') : d.exercises[Number(idx)];
-  if (!e) return notFound();
-  const opt = (list, v) => list.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('');
-  return `
-    ${topbar(isNew ? 'Nuevo ejercicio' : 'Editar ejercicio', isNew ? `#/day/${d.id}` : `#/ex/${d.id}/${idx}`)}
-    <form class="card form" data-form="edit" data-day="${d.id}" data-idx="${idx}">
-      <label>Nombre<input name="name" required value="${esc(e.name)}"></label>
-      <div class="grid2">
-        <label>Series mín.<input name="setsMin" type="number" min="1" value="${e.setsMin}"></label>
-        <label>Series máx.<input name="setsMax" type="number" min="1" value="${e.setsMax}"></label>
-        <label>Reps/seg mín.<input name="repMin" type="number" min="1" value="${e.repMin}"></label>
-        <label>Reps/seg máx.<input name="repMax" type="number" min="1" value="${e.repMax}"></label>
-      </div>
-      <label>Tipo<select name="type">${opt(TYPES, e.type)}</select></label>
-      <label>Sección<select name="section">${opt(SECTIONS, e.section)}</select></label>
-      <label>Salto de peso al progresar (kg)<input name="inc" type="text" inputmode="decimal" value="${num(e.inc)}"></label>
-      <label class="check-row"><input type="checkbox" name="heavy" ${e.heavy ? 'checked' : ''}> Pesado (descanso largo)</label>
-      <label class="check-row"><input type="checkbox" name="perSide" ${e.perSide ? 'checked' : ''}> Por lado</label>
-      <label>Nota / advertencia<input name="note" value="${esc(e.note)}"></label>
-      <button class="btn primary block" type="submit">Guardar</button>
-      ${isNew ? '' : `
-        <div class="btns">
-          <button class="btn small" type="button" data-action="move" data-dir="-1">↑ Subir</button>
-          <button class="btn small" type="button" data-action="move" data-dir="1">↓ Bajar</button>
-          <button class="btn small danger" type="button" data-action="delete-ex">Eliminar</button>
-        </div>
-        <p class="muted small">El historial se mantiene aunque cambies el nombre.</p>`}
-    </form>`;
 }
 
 // ---------- Vistas: progreso ----------
@@ -540,10 +510,10 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 // ---------- Router ----------
 
 const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
-const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food' };
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', routine: '', rday: '', lib: '', replace: '', newex: '' };
 
 function render({ keep = false } = {}) {
-  const [, view = '', a, b, c] = (location.hash || '#/').split('/');
+  const [, view = '', a, b, c, x] = (location.hash || '#/').split('/');
   const open = keep ? [...$app.querySelectorAll('details[data-keep]')].map(d => [d.dataset.keep, d.open]) : [];
   const y = window.scrollY;
   ctx = null;
@@ -556,7 +526,9 @@ function render({ keep = false } = {}) {
     return;
   }
   const html = {
-    '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEdit(a, b),
+    '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEditExercise(a, b, c),
+    routine: viewRoutine, rday: () => viewRoutineDay(a), lib: () => viewLibrary(a, b),
+    replace: () => viewReplace(a, b, c), newex: () => viewNewExercise(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
     hist: () => viewProgress(a), body: viewBody, settings: viewSettings,
     add: () => viewAddFood(a, b, c), newfood: () => viewNewFood(a),
@@ -733,7 +705,7 @@ document.addEventListener('click', async ev => {
     if (!rIn.value) rIn.value = rIn.placeholder;
     setSet(e, k, { ...(wIn && { w: parseNum(wIn.value) }), r: Math.round(parseNum(rIn.value) || 0) || null });
     row.classList.add('done');
-    startRest(e.heavy ? 150 : e.section === 'core' ? 60 : 90);
+    startRest(e.rest ?? (e.heavy ? 150 : e.section === 'core' ? 60 : 90));
   } else if (action === 'add-set' && ctx) {
     const cur = exEntry(activeDate(), ctx.e.key, ctx.d.id);
     setSet(ctx.e, Math.max(ctx.e.setsMax, cur?.sets?.length || 0), {});
@@ -767,49 +739,6 @@ document.addEventListener('click', async ev => {
       save();
       location.hash = '#/';
     }
-  } else if (action === 'move' || action === 'delete-ex') {
-    const form = btn.closest('form');
-    const d = day(form.dataset.day);
-    const i = Number(form.dataset.idx);
-    if (action === 'delete-ex') {
-      if (!confirm(`¿Eliminar "${d.exercises[i].name}" de este día? El historial se mantiene.`)) return;
-      d.exercises.splice(i, 1);
-      save();
-      location.hash = `#/day/${d.id}`;
-    } else {
-      const j = i + Number(btn.dataset.dir);
-      if (j < 0 || j >= d.exercises.length) return;
-      [d.exercises[i], d.exercises[j]] = [d.exercises[j], d.exercises[i]];
-      save();
-      location.hash = `#/edit/${d.id}/${j}`;
-    }
-  }
-});
-
-document.addEventListener('submit', ev => {
-  const form = ev.target;
-  if (form.dataset.form !== 'edit') return;
-  ev.preventDefault();
-  const f = Object.fromEntries(new FormData(form));
-  const d = day(form.dataset.day);
-  const isNew = form.dataset.idx === 'new';
-  const int = (v, def) => Math.max(1, parseInt(v, 10) || def);
-  const fields = {
-    name: f.name.trim(),
-    setsMin: int(f.setsMin, 3), setsMax: Math.max(int(f.setsMin, 3), int(f.setsMax, 3)),
-    repMin: int(f.repMin, 10), repMax: Math.max(int(f.repMin, 10), int(f.repMax, 12)),
-    type: f.type, section: f.section, inc: parseNum(f.inc) || 2.5,
-    heavy: !!f.heavy, perSide: !!f.perSide, note: f.note.trim(),
-  };
-  if (isNew) {
-    d.exercises.push({ ...fields, key: slug(fields.name) || `ej-${Date.now()}` });
-    save();
-    location.hash = `#/ex/${d.id}/${d.exercises.length - 1}`;
-  } else {
-    const i = Number(form.dataset.idx);
-    Object.assign(d.exercises[i], fields);
-    save();
-    location.hash = `#/ex/${d.id}/${i}`;
   }
 });
 

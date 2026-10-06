@@ -17,6 +17,8 @@ export const fresh = () => ({
   foods: { custom: [], recent: [], fav: [] }, // alimentos propios, recientes y favoritos
   anthro: [], // mediciones importadas de los informes PDF
   profile: null, // { name, age, ageDate, height, createdAt } — se completa en la pantalla de bienvenida
+  exLib: [],     // ejercicios propios (además de la biblioteca)
+  exNames: {},   // nombre de cada clave de historial (para mostrar ejercicios que ya no están en la rutina)
   settings: {
     deload: false, lastDeload: null, mealPrepDow: null,
     water: { enabled: false, from: 9, to: 21, every: 2 }, // recordatorios (solo app Android)
@@ -24,12 +26,27 @@ export const fresh = () => ({
   },
 });
 
+// Completa campos que las rutinas viejas no tenían.
+function normalizeRoutine(r) {
+  r.mode ??= 'week';           // 'week' = días fijos de la semana · 'rotation' = A → B → C sin día fijo
+  r.deloadWeeks ??= 5;
+  for (const d of r.days) {
+    d.dow ??= null;
+    for (const e of d.exercises) {
+      e.rest ??= e.heavy ? 150 : e.section === 'core' ? 60 : 90;
+      e.section ??= 'main';
+    }
+  }
+  return r;
+}
+
 function normalize(s) {
   const base = fresh();
+  normalizeRoutine(base.routine);
   if (!s || typeof s !== 'object') return base;
   return {
     ...base, ...s,
-    routine: s.routine || base.routine,
+    routine: normalizeRoutine(s.routine || base.routine),
     food: { ...base.food, ...s.food },
     foods: { ...base.foods, ...s.foods },
     settings: { ...base.settings, ...s.settings },
@@ -37,7 +54,7 @@ function normalize(s) {
 }
 
 function load() {
-  try { return normalize(JSON.parse(localStorage.getItem(LS_KEY))); } catch { return fresh(); }
+  try { return normalize(JSON.parse(localStorage.getItem(LS_KEY))); } catch { return normalize(null); }
 }
 
 export let state = load();
@@ -80,11 +97,34 @@ export const dateBanner = () => active ? `
 // ---------- Entreno ----------
 
 export const doneSets = s => (s?.sets || []).filter(x => x.r > 0);
-export const unitLabel = e => e.type === 'time' ? 's' : 'reps';
-export const fmtSet = (e, x) => e.type === 'weight' ? `${num(x.w ?? 0)}×${x.r}` : `${x.r}${e.type === 'time' ? 's' : ''}`;
+export const unitLabel = e => e.type === 'time' ? 's' : e.type === 'min' ? 'min' : 'reps';
+export const fmtSet = (e, x) => e.type === 'weight' ? `${num(x.w ?? 0)}×${x.r}` : `${x.r}${e.type === 'time' ? 's' : e.type === 'min' ? ' min' : ''}`;
 export const trainedOn = d => Object.values(state.logs[d]?.ex || {}).some(x => doneSets(x).length);
-export const plannedDay = d => state.routine.days.find(x => x.dow === toDate(d).getDay());
-export const isTrainingDay = d => trainedOn(d) || !!plannedDay(d);
+// Día de rutina planificado para una fecha (solo en modo semana fija).
+export const plannedDay = d => state.routine.mode === 'rotation' ? null : state.routine.days.find(x => x.dow === toDate(d).getDay());
+export const isTrainingDay = d => trainedOn(d) || !!plannedDay(d) || (state.routine.mode === 'rotation' && d >= todayStr());
+
+// En rotación: el día que toca (el siguiente al último entrenado; si hoy ya entrenaste, el de hoy).
+export function nextRotationDay(date = todayStr()) {
+  const days = state.routine.days;
+  if (!days.length) return null;
+  for (const d of Object.keys(state.logs).sort().reverse()) {
+    if (d > date) continue;
+    const ids = Object.values(state.logs[d].ex || {}).filter(x => doneSets(x).length && x.day).map(x => x.day);
+    const last = ids.at(-1);
+    const i = days.findIndex(x => x.id === last);
+    if (i < 0) continue;
+    return d === date ? days[i] : days[(i + 1) % days.length];
+  }
+  return days[0];
+}
+
+// Día de rutina que toca en una fecha, según el modo.
+export const dayFor = date => state.routine.mode === 'rotation' ? nextRotationDay(date) : plannedDay(date);
+
+// Etiqueta corta de un día: "Lun" en semana fija, "A"/"B"/"C" en rotación.
+export const dayTag = d => state.routine.mode === 'rotation' || d.dow == null
+  ? String.fromCharCode(65 + state.routine.days.indexOf(d)) : DOW[d.dow].slice(0, 3);
 
 // Registro de ejercicios por día de rutina.
 // logs[fecha].ex[slot] = { sets, note, day }. El slot es la key del ejercicio; si ese mismo ejercicio
@@ -116,10 +156,19 @@ export function ensureExEntry(date, key, dayId) {
 export const exEntriesOn = (date, key) =>
   Object.entries(state.logs[date]?.ex || {}).filter(([slot]) => baseKey(slot) === key).map(([, e]) => e);
 
+// Ejercicio (con nombre y tipo) por clave de historial: los de la rutina actual y, si ya no están,
+// el último nombre conocido.
 export function exerciseNames() {
   const names = {};
   for (const d of state.routine.days) for (const e of d.exercises) names[e.key] ??= e;
+  for (const [k, v] of Object.entries(state.exNames || {})) names[k] ??= v;
   return names;
+}
+
+// Recuerda el nombre y tipo de una clave de historial (para cuando el ejercicio sale de la rutina).
+export function rememberExercise(e) {
+  state.exNames ??= {};
+  state.exNames[e.key] = { name: e.name, type: e.type };
 }
 
 // ---------- Componentes ----------

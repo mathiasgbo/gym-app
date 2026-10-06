@@ -461,3 +461,15 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 #toast { position: fixed; left: 50%; top: calc(80px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 20;
   padding: 10px 18px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); box-shadow: 0 6px 24px #0008; font-size: 15px; }
 #toast[hidden] { display: none; }
+
+/* Editor de rutina */
+.section-head { display: flex; align-items: baseline; justify-content: space-between; }
+.small-link { font-size: 13px; color: var(--accent); }
+.field-label { font-size: 13px; color: var(--muted); }
+.rday-row, .rex-row { gap: 8px; padding: 10px 10px 10px 14px; }
+.rday-row .icon-btn:disabled, .rex-row .icon-btn:disabled { opacity: .3; }
+.lib-row { width: 100%; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+.lib-row .tag { flex: none; font-size: 12px; }
+.lib-equip { margin-top: -4px; }
+.lib-equip .chip { font-size: 13px; min-height: 34px; padding: 6px 10px; }
+.form textarea { min-height: 60px; }
