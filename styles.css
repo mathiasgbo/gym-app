@@ -473,3 +473,11 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .lib-equip { margin-top: -4px; }
 .lib-equip .chip { font-size: 13px; min-height: 34px; padding: 6px 10px; }
 .form textarea { min-height: 60px; }
+
+/* Rutinas */
+.routines-link { display: block; margin: 0 0 4px; font-size: 14px; color: var(--accent); }
+.routine-card b { display: block; font-size: 18px; }
+.routine-card.active { border: 1px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--temper) border-box; }
+.label-active { color: var(--accent); text-transform: uppercase; letter-spacing: .12em; font-family: var(--display); font-weight: 600; }
+.new-routine .ob-card { margin-bottom: 10px; }
+.text-icon { font-size: 22px; }

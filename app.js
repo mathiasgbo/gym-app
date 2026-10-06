@@ -9,6 +9,7 @@ import {
 } from './store.js';
 import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
 import { viewRoutine, viewRoutineDay, viewEditExercise, viewLibrary, viewReplace, viewNewExercise } from './routine-editor.js';
+import { viewRoutines, isRoutineFile } from './routines.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { energy, avgKcal, ACTIVITY, GOALS } from './nutrition.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
@@ -510,7 +511,7 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 // ---------- Router ----------
 
 const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
-const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', routine: '', rday: '', lib: '', replace: '', newex: '' };
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', routine: '', routines: '', rday: '', lib: '', replace: '', newex: '' };
 
 function render({ keep = false } = {}) {
   const [, view = '', a, b, c, x] = (location.hash || '#/').split('/');
@@ -527,7 +528,7 @@ function render({ keep = false } = {}) {
   }
   const html = {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEditExercise(a, b, c),
-    routine: viewRoutine, rday: () => viewRoutineDay(a), lib: () => viewLibrary(a, b),
+    routine: viewRoutine, routines: viewRoutines, rday: () => viewRoutineDay(a), lib: () => viewLibrary(a, b),
     replace: () => viewReplace(a, b, c), newex: () => viewNewExercise(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
     hist: () => viewProgress(a), body: viewBody, settings: viewSettings,
@@ -635,6 +636,7 @@ document.addEventListener('change', async ev => {
     try {
       const data = JSON.parse(await t.files[0].text());
       if (validPlan(data)) throw new Error('Ese archivo es un plan de alimentación: cargalo desde "Plan de alimentación".');
+      if (isRoutineFile(data)) throw new Error('Ese archivo es una rutina: importala desde Entreno → Editar rutina → Rutinas.');
       if (!data.routine?.days) throw new Error('El archivo no parece un backup de esta app.');
       const hasData = Object.keys(state.logs).length || state.anthro?.length;
       if (hasData && !confirm('Esto reemplaza todos tus datos actuales por los del backup. ¿Seguir?')) return;

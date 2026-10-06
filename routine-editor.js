@@ -35,7 +35,8 @@ export function viewRoutine() {
   const rule = (k, label, rows = 2) => `<label>${label}<textarea data-field="rule" data-k="${k}" rows="${rows}">${esc(R[k] || '')}</textarea></label>`;
 
   return `
-    ${topbar('Mi rutina', '#/')}
+    ${topbar('Mi rutina', '#/', '<a class="icon text-icon" href="#/routines" aria-label="Todas las rutinas">☰</a>')}
+    <a class="routines-link" href="#/routines">Cambiar de rutina, crear una nueva o importar ›</a>
     <section class="card form">
       <label>Nombre de la rutina<input data-field="routine-name" value="${esc(R.name)}" maxlength="40" placeholder="Ej: Mes 3, Volumen, En casa"></label>
       <div class="field-label">Cómo organizás los días</div>

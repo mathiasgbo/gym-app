@@ -19,6 +19,7 @@ export const fresh = () => ({
   profile: null, // { name, age, ageDate, height, createdAt } — se completa en la pantalla de bienvenida
   exLib: [],     // ejercicios propios (además de la biblioteca)
   exNames: {},   // nombre de cada clave de historial (para mostrar ejercicios que ya no están en la rutina)
+  routineArchive: [], // rutinas guardadas que no son la activa
   settings: {
     deload: false, lastDeload: null, mealPrepDow: null,
     water: { enabled: false, from: 9, to: 21, every: 2 }, // recordatorios (solo app Android)
@@ -27,7 +28,8 @@ export const fresh = () => ({
 });
 
 // Completa campos que las rutinas viejas no tenían.
-function normalizeRoutine(r) {
+export function normalizeRoutine(r) {
+  r.id ??= 'r-main';
   r.mode ??= 'week';           // 'week' = días fijos de la semana · 'rotation' = A → B → C sin día fijo
   r.deloadWeeks ??= 5;
   for (const d of r.days) {
@@ -47,6 +49,7 @@ function normalize(s) {
   return {
     ...base, ...s,
     routine: normalizeRoutine(s.routine || base.routine),
+    routineArchive: (s.routineArchive || []).map(normalizeRoutine),
     food: { ...base.food, ...s.food },
     foods: { ...base.foods, ...s.foods },
     settings: { ...base.settings, ...s.settings },
