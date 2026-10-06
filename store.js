@@ -14,6 +14,7 @@ export const fresh = () => ({
   links: {},  // { [key]: url }
   body: {},   // { 'YYYY-MM-DD': kg }
   food: { plan: null },
+  foods: { custom: [], recent: [], fav: [] }, // alimentos propios, recientes y favoritos
   anthro: [], // mediciones importadas de los informes PDF
   profile: null, // { name, age, ageDate, height, createdAt } — se completa en la pantalla de bienvenida
   settings: {
@@ -30,6 +31,7 @@ function normalize(s) {
     ...base, ...s,
     routine: s.routine || base.routine,
     food: { ...base.food, ...s.food },
+    foods: { ...base.foods, ...s.foods },
     settings: { ...base.settings, ...s.settings },
   };
 }

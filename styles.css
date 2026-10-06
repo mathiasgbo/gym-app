@@ -409,3 +409,28 @@ body.onboarding #tabs { display: none; }
 .portion.full .bar span { background: var(--up); }
 .portion b { text-align: right; font-family: var(--display); font-size: 16px; font-weight: 600; }
 .bar.water span { background: linear-gradient(90deg, #5b8def, #8fb4ff); }
+
+/* Base de alimentos */
+.search-box { position: sticky; top: calc(62px + env(safe-area-inset-top)); z-index: 4; padding: 4px 0 10px; background: var(--bg); }
+.search-box input { min-height: 52px; font-size: 17px; border-radius: 14px; background: var(--surface); padding-left: 16px; }
+.food-tabs { margin-bottom: 12px; }
+.food-row { padding: 0; min-height: 0; }
+.food-row a { display: block; padding: 12px 14px; }
+.food-row .star { flex: none; width: 52px; align-self: stretch; border: none; background: none; color: var(--muted); font-size: 22px; cursor: pointer; }
+.food-row .star.on { color: var(--accent); }
+.empty-results { text-align: center; padding: 24px 0; }
+.meal-foods .food-entry { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.meal-foods .food-entry:last-of-type { border-bottom: none; }
+.meal-foods .food-entry b { display: block; font-size: 15px; font-weight: 600; }
+.icon-btn { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); cursor: pointer; }
+.add-food { margin-top: 8px; }
+h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-family: var(--display); font-weight: 600; }
+.stepper.qty { justify-content: center; gap: 24px; }
+.stepper.qty b { font-family: var(--display); font-size: 34px; color: var(--text); min-width: 60px; text-align: center; }
+.stepper.qty .btn { min-width: 56px; font-size: 22px; }
+.macro-preview { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0 6px; text-align: center; }
+.macro-preview div { padding: 10px 4px; border-radius: 12px; background: var(--surface-2); }
+.macro-preview b { display: block; font-family: var(--display); font-size: 24px; }
+.macro-preview div:first-child b { background: var(--temper-warm); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.center { text-align: center; }
+.chip.on small { color: inherit; opacity: .75; }

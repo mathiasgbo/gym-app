@@ -11,6 +11,7 @@ import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
 import { anthroCard, viewBody } from './anthro.js';
+import { viewAddFood, viewNewFood } from './foodlog.js';
 import * as native from './native.js';
 
 const SECTIONS = [['main', 'Principal'], ['core', 'Core'], ['extra', 'Extra']];
@@ -514,10 +515,10 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 // ---------- Router ----------
 
 const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
-const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '' };
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food' };
 
 function render({ keep = false } = {}) {
-  const [, view = '', a, b] = (location.hash || '#/').split('/');
+  const [, view = '', a, b, c] = (location.hash || '#/').split('/');
   const open = keep ? [...$app.querySelectorAll('details[data-keep]')].map(d => [d.dataset.keep, d.open]) : [];
   const y = window.scrollY;
   ctx = null;
@@ -533,6 +534,7 @@ function render({ keep = false } = {}) {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEdit(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
     hist: () => viewProgress(a), body: viewBody, settings: viewSettings,
+    add: () => viewAddFood(a, b, c), newfood: () => viewNewFood(a),
   }[view];
   $app.innerHTML = html ? html() : notFound();
   $tabs.innerHTML = TABS.map(([v, icon, label]) =>

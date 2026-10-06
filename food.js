@@ -7,6 +7,7 @@ import {
   state, save, ui, esc, num, activeDate, dayLog, ensureLog, dateBanner,
   isTrainingDay, topbar, gear, todayStr, toDate, addDays, DOW, env,
 } from './store.js';
+import { entryInfo } from './foods.js';
 
 const SEP = '|';
 const optLabel = o => typeof o === 'string' ? o : o.t;
@@ -50,6 +51,7 @@ const mealLog = (date, id) => dayLog(date)?.food?.meals?.[id];
 export function mealStatus(m, date) {
   const L = mealLog(date, m.id);
   const items = L?.items || [];
+  const foods = L?.foods || [];
   const note = L?.note || '';
   const slots = (m.slots || []).map(s => {
     const opts = plan().groups[s.group]?.options || [];
@@ -58,8 +60,8 @@ export function mealStatus(m, date) {
     return { ...s, n, ok: n >= (s.count || 1) };
   });
   const status = L?.status === 'skipped' ? 'skipped'
-    : (L?.status === 'ate' || L?.done || items.length || note) ? 'ate' : 'none';
-  return { slots, status, done: status === 'ate', items, note, generic: status === 'ate' && !items.length };
+    : (L?.status === 'ate' || L?.done || items.length || foods.length || note) ? 'ate' : 'none';
+  return { slots, status, done: status === 'ate', items, foods, note, generic: status === 'ate' && !items.length && !foods.length };
 }
 
 // Porciones del día por categoría: objetivo (comidas obligatorias del plan) vs. lo registrado.
@@ -74,6 +76,11 @@ export function dayPortions(date) {
       if (!m.optional && !s.optional) target[c] = (target[c] || 0) + count;
       if (st.status !== 'ate') continue;
       done[c] = (done[c] || 0) + (st.generic ? (s.optional ? 0 : count) : s.n);
+    }
+    if (st.status !== 'ate') continue;
+    for (const e of st.foods) {
+      const c = entryInfo(e).cat;
+      if (CATS.some(([k]) => k === c)) done[c] = (done[c] || 0) + 1;
     }
   }
   return CATS.filter(([c]) => target[c]).map(([c, label]) => ({ c, label, target: target[c], done: done[c] || 0 }));
@@ -160,25 +167,38 @@ export function viewFood() {
     }).join('');
 
     // Resumen bajo el nombre: qué categorías tiene (guía, no obligación)
+    const mealKcal = st.foods.reduce((a, e) => a + (entryInfo(e).n?.kcal || 0), 0);
     const guide = st.status === 'ate' && !st.generic
-      ? st.slots.filter(s => !s.optional).map(s => `${esc(p.groups[s.group]?.label.split(' (')[0] || '')} ${s.n ? '✓' : '—'}`).join(' · ')
+      ? [st.items.length ? st.slots.filter(s => !s.optional).map(s => `${esc(p.groups[s.group]?.label.split(' (')[0] || '')} ${s.n ? '✓' : '—'}`).join(' · ') : '',
+         st.foods.length ? `${st.foods.length} alimento${st.foods.length > 1 ? 's' : ''} · ${Math.round(mealKcal)} kcal` : ''].filter(Boolean).join(' · ')
       : st.status === 'ate' ? 'Según el plan' : m.when || '';
     const prev = mealStatus(m, yesterday);
-    const canRepeat = prev.status === 'ate' && (prev.items.length || prev.note || prev.generic);
+    const canRepeat = prev.status === 'ate';
 
     return `<details class="card meal ${st.status}" data-keep="meal-${esc(m.id)}" ${k === firstOpen ? 'open' : ''}>
       <summary><span class="grow"><b>${esc(m.name)}</b>${guide ? `<small>${guide}</small>` : ''}</span>
         ${m.optional && st.status === 'none' ? '<span class="pill muted-pill">opcional</span>' : STATUS_PILL[st.status]}</summary>
       <div class="meal-actions">
-        ${st.items.length ? '' : `<button class="btn small ${st.status === 'ate' ? 'primary' : ''}" data-action="food-ate" data-meal="${esc(m.id)}">${st.status === 'ate' ? '✓ Comí' : 'Comí'}</button>`}
+        ${st.items.length || st.foods.length ? '' : `<button class="btn small ${st.status === 'ate' ? 'primary' : ''}" data-action="food-ate" data-meal="${esc(m.id)}">${st.status === 'ate' ? '✓ Comí' : 'Comí'}</button>`}
         <button class="btn small ${st.status === 'skipped' ? 'on-skip' : ''}" data-action="food-skip" data-meal="${esc(m.id)}">No comí</button>
         ${canRepeat ? `<button class="btn small ghost" data-action="food-repeat" data-meal="${esc(m.id)}">↺ Repetir de ayer</button>` : ''}
-        ${st.items.length || st.status !== 'none' ? `<button class="btn small ghost" data-action="food-clear" data-meal="${esc(m.id)}">Limpiar</button>` : ''}
+        ${st.status !== 'none' ? `<button class="btn small ghost" data-action="food-clear" data-meal="${esc(m.id)}">Limpiar</button>` : ''}
       </div>
       ${st.status === 'skipped' ? '<p class="note">Marcada como salteada. Tocá "No comí" de nuevo para deshacer.</p>' : `
         ${m.hint ? `<p class="note">${esc(m.hint)}</p>` : ''}
         <p class="muted small guide-tip">Tocá lo que comiste. No hace falta completar todas las categorías.</p>
         ${slots}
+        <div class="slot meal-foods">
+          <div class="slot-h"><span>Otros alimentos</span></div>
+          ${st.foods.map((e, i) => {
+            const info = entryInfo(e);
+            return `<div class="food-entry">
+              <a class="grow" href="#/add/${esc(m.id)}/${esc(e.id)}/${i}"><b>${esc(info.name)}</b><small>${esc(info.label)}${info.n ? ` · ${Math.round(info.n.kcal)} kcal` : ''}</small></a>
+              <button class="icon-btn" data-action="food-del" data-meal="${esc(m.id)}" data-i="${i}" aria-label="Quitar">✕</button>
+            </div>`;
+          }).join('')}
+          <a class="btn small add-food" href="#/add/${esc(m.id)}">+ Agregar alimento</a>
+        </div>
         <input type="text" data-field="meal-note" data-meal="${esc(m.id)}" placeholder="¿Comiste otra cosa? Anotala acá" value="${esc(st.note)}">
         ${m.examples?.length ? `<details class="ideas"><summary>💡 Ideas</summary><ul>${m.examples.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>` : ''}`}
     </details>`;
@@ -230,12 +250,13 @@ export function viewFood() {
 
 // ---------- Eventos ----------
 
-function mealEntry(id, date = activeDate()) {
+export function mealEntry(id, date = activeDate()) {
   const L = ensureLog(date);
   L.food ??= {};
   L.food.meals ??= {};
   const m = L.food.meals[id] ??= { items: [] };
   m.items ??= [];
+  m.foods ??= [];
   if (m.done) { m.status = 'ate'; delete m.done; } // formato viejo: "marcada como hecha"
   return m;
 }
@@ -250,22 +271,26 @@ document.addEventListener('click', ev => {
     const it = btn.dataset.item;
     m.items = m.items.includes(it) ? m.items.filter(x => x !== it) : [...m.items, it];
     if (m.items.length) m.status = 'ate';
-    else if (!m.note) delete m.status;
+    else if (!m.note && !m.foods.length) delete m.status;
   } else if (a === 'food-ate') {
     const m = mealEntry(id);
     if (m.status === 'ate' && !m.items.length) delete m.status; else m.status = 'ate';
   } else if (a === 'food-skip') {
     const m = mealEntry(id);
     if (m.status === 'skipped') delete m.status;
-    else Object.assign(m, { status: 'skipped', items: [], note: '' });
+    else Object.assign(m, { status: 'skipped', items: [], foods: [], note: '' });
   } else if (a === 'food-repeat') {
     const prev = mealEntry(id, addDays(activeDate(), -1));
     const m = mealEntry(id);
-    Object.assign(m, { status: 'ate', items: [...prev.items], note: prev.note || '' });
+    Object.assign(m, { status: 'ate', items: [...prev.items], foods: prev.foods.map(e => ({ ...e })), note: prev.note || '' });
   } else if (a === 'food-clear') {
     const m = mealEntry(id);
-    Object.assign(m, { items: [], note: '' });
+    Object.assign(m, { items: [], foods: [], note: '' });
     delete m.status;
+  } else if (a === 'food-del') {
+    const m = mealEntry(id);
+    m.foods.splice(Number(btn.dataset.i), 1);
+    if (!m.foods.length && !m.items.length && !m.note) delete m.status;
   } else if (a === 'water') {
     const F = ensureLog().food ??= {};
     F.water = Math.max(0, (F.water || 0) + Number(btn.dataset.d));
@@ -284,7 +309,7 @@ document.addEventListener('change', async ev => {
     const m = mealEntry(t.dataset.meal);
     m.note = t.value.trim();
     if (m.note) m.status = 'ate';
-    else if (!m.items.length && m.status === 'ate') delete m.status;
+    else if (!m.items.length && !m.foods.length && m.status === 'ate') delete m.status;
     save();
     ui.render({ keep: true });
   } else if (t.dataset.action === 'plan-file' && t.files[0]) {

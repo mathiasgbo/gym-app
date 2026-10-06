@@ -4,6 +4,7 @@ import {
   trainedOn, plannedDay, doneSets, fmtSet, exerciseNames, topbar, gear, DOW, baseKey,
 } from './store.js';
 import { plan, mealsFor, mealStatus, foodScore, dayPortions, waterMl, waterTarget } from './food.js';
+import { entryInfo } from './foods.js';
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const scoreClass = s => s == null ? '' : s >= 0.8 ? 'good' : s >= 0.5 ? 'mid' : 'low';
@@ -87,7 +88,8 @@ export function viewDate(d) {
       const st = mealStatus(m, d);
       const items = st.items.map(it => it.split('|').slice(1).join('|'));
       const icon = { ate: '✓', skipped: '✗', none: '○' }[st.status];
-      const detail = st.status === 'skipped' ? 'No comí' : st.generic ? 'Según el plan' : [...items, st.note].filter(Boolean).join(' · ');
+      const foods = st.foods.map(e => { const i = entryInfo(e); return i.label ? `${i.name} (${i.label})` : i.name; });
+      const detail = st.status === 'skipped' ? 'No comí' : st.generic ? 'Según el plan' : [...items, ...foods, st.note].filter(Boolean).join(' · ');
       return `<div class="row ${st.status === 'ate' ? '' : 'faded'}"><span class="grow"><b>${icon} ${esc(m.name)}</b>
         ${detail ? `<small>${esc(detail)}</small>` : ''}</span></div>`;
     }).join('')}</div>
