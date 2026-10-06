@@ -9,6 +9,7 @@ import {
 } from './store.js';
 import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
+import { energy, avgKcal, ACTIVITY, GOALS } from './nutrition.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
 import { anthroCard, viewBody } from './anthro.js';
 import { viewAddFood, viewNewFood } from './foodlog.js';
@@ -351,6 +352,7 @@ function viewProgress(key) {
         <div><b>${w.food != null ? w.food + '%' : '—'}</b><small>comidas</small></div>
         <div><b>${w.water != null ? num(Math.round(w.water / 100) / 10) + ' L' : '—'}</b><small>agua/día</small></div>
         <div><b>${w.sleep != null ? num(Math.round(w.sleep * 10) / 10) + ' h' : '—'}</b><small>sueño</small></div>
+        <div><b>${avgKcal() ? Math.round(avgKcal()).toLocaleString('es-AR') : '—'}</b><small>kcal/día${energy().target ? ` (obj. ${energy().target.toLocaleString('es-AR')})` : ''}</small></div>
       </div>
     </section>
     ${anthroCard()}
@@ -368,6 +370,27 @@ function viewProgress(key) {
     ${exercisesSection(names)}`;
 }
 
+function kcalCard() {
+  if (!state.profile) return '';
+  const e = energy();
+  const cfg = state.settings.kcal || {};
+  const fmt = n => Math.round(n).toLocaleString('es-AR');
+  const goals = Object.entries(GOALS).map(([k, g]) =>
+    `<option value="${k}" ${e.goal === k ? 'selected' : ''}>${g.label}${g.kcal ? ` (${g.kcal > 0 ? '+' : ''}${g.kcal} kcal)` : ''}</option>`).join('');
+  return `
+    <section class="card">
+      <h3>Objetivo de calorías</h3>
+      ${e.auto ? `<p class="muted small">Basal ${fmt(e.bmr)} kcal (${esc(e.bmrSource)}) × actividad ${num(Math.round(e.factor * 100) / 100)}
+        (${ACTIVITY[state.profile.activity].label.toLowerCase()} + ${e.trainDays} entrenos por semana) ${GOALS[e.goal].kcal >= 0 ? '+' : '−'} ${Math.abs(GOALS[e.goal].kcal)}
+        = <b>${fmt(e.auto)} kcal</b>.</p>`
+        : `<p class="muted small">Completá tu perfil (${e.missing.join(' y ')}) para estimarlo.</p>`}
+      <label class="stack">Objetivo<select data-action="kcal-goal">${goals}</select></label>
+      <label class="check-row"><input type="checkbox" data-action="kcal-manual" ${e.manual ? 'checked' : ''}> Usar un número propio (por ejemplo, el de tu nutricionista)</label>
+      ${cfg.mode === 'manual' ? `<div class="link-row" style="margin-top:10px"><input type="text" inputmode="numeric" data-field="kcal-value" value="${cfg.manual || ''}" placeholder="${e.auto || 2500}"><span class="muted nowrap">kcal/día</span></div>` : ''}
+      <p class="muted small">Es una estimación de apoyo: tu plan sigue siendo por porciones. Validala con tu nutricionista.</p>
+    </section>`;
+}
+
 function profileCard() {
   const p = state.profile;
   if (!p) return '';
@@ -375,7 +398,8 @@ function profileCard() {
   return `
     <section class="card">
       <h3>Perfil</h3>
-      <p class="muted small">${esc(p.name)} · ${profileAge()} años · ${num(p.height)} cm${lastBody ? ` · ${num(state.body[lastBody])} kg` : ''}</p>
+      <p class="muted small">${esc(p.name)} · ${profileAge()} años · ${num(p.height)} cm${lastBody ? ` · ${num(state.body[lastBody])} kg` : ''}
+        ${p.sex ? ` · ${p.sex === 'f' ? 'femenino' : 'masculino'}` : ''}${ACTIVITY[p.activity] ? ` · ${ACTIVITY[p.activity].label.toLowerCase()}` : ''}</p>
       <button class="btn small" data-action="profile-edit">Editar perfil</button>
     </section>`;
 }
@@ -476,6 +500,7 @@ function viewSettings() {
   return `
     ${topbar('Ajustes', '#/')}
     ${profileCard()}
+    ${kcalCard()}
     ${env.native ? nativeSettings() : ''}
     <section class="card">
       <h3>Plan de alimentación</h3>
@@ -612,6 +637,16 @@ document.addEventListener('change', async ev => {
       render({ keep: true });
       alert('No se pudieron programar los recordatorios: ' + err.message);
     }
+  } else if (action === 'kcal-goal' || action === 'kcal-manual') {
+    const cfg = state.settings.kcal ??= {};
+    if (action === 'kcal-goal') cfg.goal = t.value; else cfg.mode = t.checked ? 'manual' : 'auto';
+    save();
+    render({ keep: true });
+  } else if (t.dataset.field === 'kcal-value') {
+    const v = parseNum(t.value);
+    (state.settings.kcal ??= {}).manual = v > 0 ? Math.round(v) : null;
+    save();
+    render({ keep: true });
   } else if (action === 'meal-prep') {
     state.settings.mealPrepDow = t.value === '' ? null : Number(t.value);
     save();
@@ -673,7 +708,7 @@ document.addEventListener('click', async ev => {
 
   if (action === 'rest-stop') stopRest();
   else if (action === 'date-today') { setActiveDate(null); render(); }
-  else if (action === 'profile-edit') { editProfile(); render(); }
+  else if (action === 'profile-edit') { editProfile(Number(btn.dataset.step) || 0); render(); }
   else if (action === 'hist-filter') { histFilter = btn.dataset.day; render({ keep: true }); }
   else if (action === 'deload-on') { deloadOn(); render(); }
   else if (action === 'deload-off') { deloadOff(); render(); }

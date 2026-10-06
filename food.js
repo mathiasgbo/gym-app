@@ -8,6 +8,30 @@ import {
   isTrainingDay, topbar, gear, todayStr, toDate, addDays, DOW, env,
 } from './store.js';
 import { entryInfo } from './foods.js';
+import { mealNutrition, dayNutrition, energy } from './nutrition.js';
+
+const fmtKcal = k => Math.round(k).toLocaleString('es-AR');
+
+// Calorías del día vs. objetivo, y macros. Si falta información del perfil, lo pide.
+function energyBlock(date) {
+  const n = dayNutrition(date);
+  const e = energy();
+  const eaten = n?.kcal || 0;
+  if (!e.target) {
+    return `<div class="kcal-box">
+      <div class="kcal-line"><b>${n ? `${n.estimated ? '≈ ' : ''}${fmtKcal(eaten)}` : '0'}</b> kcal</div>
+      ${e.missing.length ? `<button class="btn small" data-action="profile-edit" data-step="2">Completá tu perfil (${e.missing.join(' y ')}) para ver tu objetivo</button>` : ''}
+    </div>`;
+  }
+  const pct = Math.min(100, Math.round(eaten / e.target * 100));
+  const macro = (label, v, t) => `<span><b>${Math.round(v || 0)}</b>/${Math.round(t)} g ${label}</span>`;
+  return `<div class="kcal-box">
+    <div class="kcal-line"><b>${n?.estimated ? '≈ ' : ''}${fmtKcal(eaten)}</b> / ${fmtKcal(e.target)} kcal
+      <a class="kcal-goal" href="#/settings">${e.manual ? 'objetivo propio' : 'objetivo estimado'} ›</a></div>
+    <div class="bar kcal ${eaten > e.target * 1.1 ? 'over' : ''}"><span style="width:${pct}%"></span></div>
+    ${e.macros ? `<div class="macros-mini">${macro('P', n?.p, e.macros.p)}${macro('H', n?.c, e.macros.c)}${macro('G', n?.f, e.macros.f)}</div>` : ''}
+  </div>`;
+}
 
 const SEP = '|';
 const optLabel = o => typeof o === 'string' ? o : o.t;
@@ -167,11 +191,12 @@ export function viewFood() {
     }).join('');
 
     // Resumen bajo el nombre: qué categorías tiene (guía, no obligación)
-    const mealKcal = st.foods.reduce((a, e) => a + (entryInfo(e).n?.kcal || 0), 0);
+    const mn = mealNutrition(m, date);
+    const kcalTxt = mn?.kcal ? `${mn.estimated ? '≈ ' : ''}${fmtKcal(mn.kcal)} kcal` : '';
     const guide = st.status === 'ate' && !st.generic
       ? [st.items.length ? st.slots.filter(s => !s.optional).map(s => `${esc(p.groups[s.group]?.label.split(' (')[0] || '')} ${s.n ? '✓' : '—'}`).join(' · ') : '',
-         st.foods.length ? `${st.foods.length} alimento${st.foods.length > 1 ? 's' : ''} · ${Math.round(mealKcal)} kcal` : ''].filter(Boolean).join(' · ')
-      : st.status === 'ate' ? 'Según el plan' : m.when || '';
+         st.foods.length ? `${st.foods.length} alimento${st.foods.length > 1 ? 's' : ''}` : '', kcalTxt].filter(Boolean).join(' · ')
+      : st.status === 'ate' ? ['Según el plan', kcalTxt].filter(Boolean).join(' · ') : m.when || '';
     const prev = mealStatus(m, yesterday);
     const canRepeat = prev.status === 'ate';
 
@@ -218,6 +243,7 @@ export function viewFood() {
       <div class="muted">${DOW[toDate(date).getDay()]} · ${isTrainingDay(date) ? 'día de entreno' : 'día de descanso'}</div>
       <h2>${score != null ? `${Math.round(score * 100)}% del plan` : 'Sin registrar'}</h2>
       <p class="muted small day-meals">${counts.logged}/${counts.total} comidas registradas${counts.skipped ? ` · ${counts.skipped} salteada${counts.skipped > 1 ? 's' : ''}` : ''}</p>
+      ${energyBlock(date)}
       <div class="portions">${portionRows}</div>
       <div class="stats">
         <div class="stat">

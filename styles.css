@@ -434,3 +434,23 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .macro-preview div:first-child b { background: var(--temper-warm); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .center { text-align: center; }
 .chip.on small { color: inherit; opacity: .75; }
+
+/* Calorías */
+.kcal-box { margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.kcal-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; font-size: 15px; color: var(--muted); }
+.kcal-line b { font-family: var(--display); font-size: 28px; color: var(--text); }
+.kcal-goal { margin-left: auto; font-size: 13px; color: var(--accent); }
+.bar.kcal { margin: 8px 0; }
+.bar.kcal span { background: var(--temper); }
+.bar.kcal.over span { background: var(--down); }
+.macros-mini { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.macros-mini b { color: var(--text); font-family: var(--display); font-size: 16px; }
+.kcal-box .btn { margin-top: 8px; }
+/* Perfil: sexo y actividad */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg-btn, .ob-card.pick { font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+.seg-btn { min-height: 52px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); font-size: 17px; font-weight: 600; text-align: center; text-transform: none; letter-spacing: 0; font-family: system-ui, sans-serif; }
+.seg-btn.on { background: var(--temper-warm); color: var(--accent-ink); border-color: transparent; }
+.ob-card.pick { width: 100%; }
+.ob-card.pick.on { box-shadow: 0 0 0 2px var(--accent); }
+.ob-card.pick small { display: block; }

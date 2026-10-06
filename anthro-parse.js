@@ -75,6 +75,11 @@ export function parseReport(pages) {
     if (r) out.masses[m.key] = { pct: toNum(r[2]), kg: toNum(r[3]) };
   }
 
+  // Metabolismo basal estimado por el informe (página 3), en kcal/día.
+  // (la línea incluye "Harris & Benedict, 1919": el valor es el número con decimales)
+  const bmr = all.match(/Metabolismo Basal \(MB\):[^\n]*?(\d{3,4}[.,]\d+)/);
+  if (bmr) out.bmr = toNum(bmr[1]);
+
   // Somatotipo (página 4).
   const s = all.match(new RegExp(NUM + '\\s+' + NUM + '\\s+' + NUM + '\\s+\\(Posicionamiento actual\\)'));
   if (s) out.somato = { endo: toNum(s[1]), meso: toNum(s[2]), ecto: toNum(s[3]) };

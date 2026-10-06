@@ -7,6 +7,7 @@ App web instalable (PWA) para Android: rutina, registro de pesos, videos offline
 - `app.js`: router, entreno (series, sugerencias de doble progresión, videos), progreso y ajustes.
 - `food.js`: alimentación (estados por comida, cumplimiento por porciones, agua, sueño, meal prep).
 - `foods.js`: base de ~220 alimentos de Argentina y Uruguay (kcal y macros cada 100 g, porciones caseras) y búsqueda.
+- `nutrition.js`: calorías y macros por comida y por día, y objetivo diario (basal del informe o Mifflin-St Jeor × actividad ± objetivo).
 - `foodlog.js`: agregar alimentos a una comida (búsqueda, porción, cantidad, favoritos, recientes, alimentos propios).
 - `profile.js`: perfil y pantalla de bienvenida (nombre, edad, peso/altura o antropometría).
 - `fonts/`: Barlow Condensed (OFL) para títulos y números; `icons/logo.svg`: logo de Temple.

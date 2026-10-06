@@ -5,6 +5,7 @@ import {
 } from './store.js';
 import { plan, mealsFor, mealStatus, foodScore, dayPortions, waterMl, waterTarget } from './food.js';
 import { entryInfo } from './foods.js';
+import { dayNutrition } from './nutrition.js';
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const scoreClass = s => s == null ? '' : s >= 0.8 ? 'good' : s >= 0.5 ? 'mid' : 'low';
@@ -93,6 +94,7 @@ export function viewDate(d) {
       return `<div class="row ${st.status === 'ate' ? '' : 'faded'}"><span class="grow"><b>${icon} ${esc(m.name)}</b>
         ${detail ? `<small>${esc(detail)}</small>` : ''}</span></div>`;
     }).join('')}</div>
+    ${dayNutrition(d) ? `<p class="small">Calorías: <b>${dayNutrition(d).estimated ? '≈ ' : ''}${Math.round(dayNutrition(d).kcal).toLocaleString('es-AR')} kcal</b> · P ${Math.round(dayNutrition(d).p)} g · H ${Math.round(dayNutrition(d).c)} g · G ${Math.round(dayNutrition(d).f)} g</p>` : ''}
     ${foodScore(d) != null ? `<p class="small">Cumplimiento del plan: <b>${Math.round(foodScore(d) * 100)}%</b> · ${dayPortions(d).map(x => `${x.label} ${num(Math.min(x.done, 99))}/${x.target}`).join(' · ')}</p>` : ''}
     <p class="muted small">💧 ${num(waterMl(d) / 1000)} / ${num(waterTarget() / 1000)} L · 😴 ${L.food?.sleep != null ? num(L.food.sleep) + ' h' : '—'}</p>`;
 

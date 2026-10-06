@@ -1,20 +1,23 @@
-// Perfil y pantalla de bienvenida (3 pasos: nombre → edad → peso/altura o antropometría).
+// Perfil y pantalla de bienvenida (4 pasos: nombre → edad → sexo y actividad → peso/altura o antropometría).
 // Se muestra la primera vez que se abre la app, y desde Ajustes para editar el perfil.
 import { state, save, ui, esc, num, parseNum, todayStr, fmtDate, LOGO, ICONS } from './store.js';
 import { measures } from './anthro.js';
+import { ACTIVITY } from './nutrition.js';
 
 let step = 0;
 let editing = false;
 let draft = null; // valores que se van cargando; se recalculan si cambia el estado (por ejemplo, al restaurar un backup)
 let error = '';
-let notice = ''; // aviso positivo (por ejemplo, "backup restaurado")
+let notice = '';
+let returnTo = '#/'; // a dónde volver después de editar el perfil // aviso positivo (por ejemplo, "backup restaurado")
 
 export const needsProfile = () => !state.profile || editing;
 export const setNotice = text => { notice = text; };
 
-export function editProfile() {
+export function editProfile(startStep = 0) {
+  returnTo = location.hash || '#/';
   editing = true;
-  step = 0;
+  step = startStep;
   draft = null;
   error = '';
 }
@@ -35,6 +38,8 @@ function ensureDraft() {
     age: p.age ?? (m?.age ? Math.floor(m.age) : ''),
     height: p.height ?? m?.values.talla ?? '',
     weight: lastWeight() ?? m?.values.peso ?? '',
+    sex: p.sex || '',
+    activity: p.activity || '',
   };
 }
 
@@ -64,6 +69,19 @@ const STEPS = [
     <h2>¿Cuántos <em>años</em> tenés?</h2>
     <p class="lead">La usamos para darle contexto a tus mediciones.</p>
     ${field('age', 'Edad', 'type="text" inputmode="numeric" maxlength="3" placeholder="30"', 'años')}`,
+  () => `
+    <h2>Sobre <em>vos</em></h2>
+    <p class="lead">Con esto estimamos tu gasto de energía para el objetivo de calorías.</p>
+    <div class="ob-field">Sexo
+      <div class="seg">
+        ${[['m', 'Masculino'], ['f', 'Femenino']].map(([v, l]) => `<button type="button" class="seg-btn ${draft.sex === v ? 'on' : ''}" data-action="ob-pick" data-k="sex" data-v="${v}">${l}</button>`).join('')}
+      </div>
+    </div>
+    <div class="ob-field">Actividad fuera del gimnasio</div>
+    ${Object.entries(ACTIVITY).map(([v, a]) => `
+      <button type="button" class="ob-card pick ${draft.activity === v ? 'on' : ''}" data-action="ob-pick" data-k="activity" data-v="${v}">
+        <span><b>${a.label}</b><small>${a.hint}</small></span>
+      </button>`).join('')}`,
   () => {
     const m = measures().at(-1);
     return `
@@ -109,6 +127,10 @@ export function viewOnboarding() {
 // Valida el paso actual; devuelve el mensaje de error o '' si está bien.
 function validate() {
   if (step === 0) return draft.name.trim() ? '' : 'Contanos tu nombre.';
+  if (step === 2) {
+    if (!draft.sex) return 'Elegí tu sexo.';
+    return draft.activity ? '' : 'Elegí tu nivel de actividad.';
+  }
   if (step === 1) {
     const a = parseNum(draft.age);
     return a != null && a >= 12 && a <= 100 ? '' : 'Ingresá una edad entre 12 y 100.';
@@ -126,6 +148,8 @@ function finish() {
     age: Math.round(parseNum(draft.age)),
     ageDate: todayStr(),
     height: parseNum(draft.height),
+    sex: draft.sex,
+    activity: draft.activity,
     createdAt: state.profile?.createdAt || todayStr(),
   };
   if (lastWeight() !== weight) state.body[todayStr()] = weight;
@@ -134,7 +158,9 @@ function finish() {
   step = 0;
   draft = null;
   notice = '';
-  if (location.hash === '#/' || !location.hash) ui.render(); else location.hash = '#/';
+  const to = returnTo;
+  returnTo = '#/';
+  if ((location.hash || '#/') === to) ui.render(); else location.hash = to;
 }
 
 document.addEventListener('input', ev => {
@@ -152,6 +178,12 @@ document.addEventListener('submit', ev => {
 
 document.addEventListener('click', ev => {
   const a = ev.target.closest('[data-action]')?.dataset.action;
+  if (a === 'ob-pick' && draft) {
+    draft[ev.target.closest('[data-action]').dataset.k] = ev.target.closest('[data-action]').dataset.v;
+    error = '';
+    ui.render({ keep: true });
+    return;
+  }
   if (a === 'ob-back') { step = Math.max(0, step - 1); error = ''; ui.render(); }
   else if (a === 'ob-cancel') { editing = false; draft = null; error = ''; ui.render(); }
 });
