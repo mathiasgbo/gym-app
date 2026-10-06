@@ -7,6 +7,7 @@ import {
 } from './store.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan } from './food.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
+import { anthroCard, viewBody } from './anthro.js';
 
 const SECTIONS = [['main', 'Principal'], ['core', 'Core'], ['extra', 'Extra']];
 const TYPES = [['weight', 'Peso × reps'], ['reps', 'Solo reps (peso corporal)'], ['time', 'Tiempo (segundos)']];
@@ -355,6 +356,7 @@ function viewProgress(key) {
         <div><b>${w.sleep != null ? num(Math.round(w.sleep * 10) / 10) + ' h' : '—'}</b><small>sueño</small></div>
       </div>
     </section>
+    ${anthroCard()}
     <section class="card">
       <h3>⚖️ Peso corporal</h3>
       <div class="link-row">
@@ -426,7 +428,7 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 // ---------- Router ----------
 
 const TABS = [['', '🏋️', 'Entreno'], ['food', '🍽️', 'Comida'], ['cal', '📅', 'Calendario'], ['hist', '📈', 'Progreso']];
-const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', settings: '' };
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '' };
 
 function render({ keep = false } = {}) {
   const [, view = '', a, b] = (location.hash || '#/').split('/');
@@ -436,7 +438,7 @@ function render({ keep = false } = {}) {
   const html = {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEdit(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),
-    hist: () => viewProgress(a), settings: viewSettings,
+    hist: () => viewProgress(a), body: viewBody, settings: viewSettings,
   }[view];
   $app.innerHTML = html ? html() : notFound();
   $tabs.innerHTML = TABS.map(([v, icon, label]) =>

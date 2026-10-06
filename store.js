@@ -14,6 +14,7 @@ export const fresh = () => ({
   links: {},  // { [key]: url }
   body: {},   // { 'YYYY-MM-DD': kg }
   food: { plan: null },
+  anthro: [], // mediciones importadas de los informes PDF
   settings: { deload: false, lastDeload: null, mealPrepDow: null },
 });
 

@@ -258,3 +258,18 @@ label.stack { display: flex; flex-direction: column; gap: 6px; margin-top: 12px;
 .kpis b { font-size: 20px; }
 .edit-day { margin-top: 12px; }
 .edit-day summary { font-weight: 500; color: var(--muted); font-size: 14px; }
+
+/* Antropometría */
+.cmp { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.cmp th, .cmp td { padding: 7px 4px; border-bottom: 1px solid var(--border); text-align: right; vertical-align: top; }
+.cmp thead th { font-size: 12px; font-weight: 600; color: var(--muted); }
+.cmp tbody th { text-align: left; font-weight: 500; }
+.cmp tr:last-child th, .cmp tr:last-child td { border-bottom: none; }
+.cmp td small { font-size: 11px; }
+.cmp .dif { font-weight: 700; color: var(--muted); white-space: nowrap; }
+.cmp .dif.good { color: var(--up); }
+.cmp .dif.bad { color: var(--down); }
+.insight { margin: 10px 0 4px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+.insight.good { background: color-mix(in srgb, var(--up) 12%, var(--surface)); }
+.charts { display: flex; flex-direction: column; gap: 10px; }
+.mini .chart { margin-top: 2px; }

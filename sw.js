@@ -1,8 +1,8 @@
 // Guarda la app en el teléfono para que funcione sin señal.
 // Sirve desde caché y actualiza en segundo plano (los cambios se ven al reabrir).
-const CACHE = 'gym-v2';
+const CACHE = 'gym-v3';
 const ASSETS = [
-  './', 'index.html', 'styles.css', 'app.js', 'routine.js', 'store.js', 'food.js', 'calendar.js',
+  './', 'index.html', 'styles.css', 'app.js', 'routine.js', 'store.js', 'food.js', 'calendar.js', 'anthro.js', 'anthro-parse.js',
   'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
 ];
