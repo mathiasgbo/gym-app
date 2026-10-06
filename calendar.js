@@ -1,7 +1,7 @@
 // Calendario mensual, resumen de un día y estadísticas semanales.
 import {
   state, ui, esc, num, pad, todayStr, toDate, addDays, fmtDateLong, dayLog, setActiveDate,
-  trainedOn, plannedDay, doneSets, fmtSet, exerciseNames, topbar, gear, DOW,
+  trainedOn, plannedDay, doneSets, fmtSet, exerciseNames, topbar, gear, DOW, baseKey,
 } from './store.js';
 import { plan, mealsFor, mealStatus, foodScore, waterMl, waterTarget } from './food.js';
 
@@ -74,8 +74,9 @@ export function viewDate(d) {
 
   const train = exs.length
     ? `<div class="list">${exs.map(([k, x]) => {
-        const e = names[k] || { name: k, type: 'weight' };
-        return `<div class="row"><span class="grow"><b>${esc(e.name)}</b>
+        const e = names[baseKey(k)] || { name: baseKey(k), type: 'weight' };
+        const day = x.day && state.routine.days.find(r => r.id === x.day);
+        return `<div class="row"><span class="grow"><b>${esc(e.name)}</b>${day && day !== p ? ` <span class="tag">${esc(day.title)}</span>` : ''}
           <small>${doneSets(x).map(s => fmtSet(e, s)).join(' · ')}${x.note ? ` — ${esc(x.note)}` : ''}</small></span></div>`;
       }).join('')}</div>`
     : `<p class="muted">${d > today ? (p ? `Planificado: ${esc(p.title)}` : 'Día de descanso.') : 'Sin entreno registrado.'}</p>`;

@@ -4,6 +4,7 @@ import {
   esc, num, parseNum, roundTo, pad, todayStr, toDate, addDays, fmtDate, isUrl,
   activeDate, setActiveDate, dayLog, ensureLog, dateBanner,
   doneSets, unitLabel, fmtSet, exerciseNames, topbar, gear, chart,
+  baseKey, exEntry, ensureExEntry, exEntriesOn,
   ICONS, brandbar, greeting, profileAge,
 } from './store.js';
 import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
@@ -34,7 +35,7 @@ const totalReps = s => doneSets(s).reduce((a, x) => a + x.r, 0);
 function sessionsFor(key, before) {
   return Object.keys(state.logs).sort().reverse()
     .filter(d => !before || d < before)
-    .map(d => ({ date: d, ...state.logs[d].ex?.[key] }))
+    .flatMap(d => exEntriesOn(d, key).map(e => ({ date: d, ...e })))
     .filter(s => doneSets(s).length);
 }
 
@@ -159,7 +160,7 @@ function viewHome() {
   const today = R.days.find(d => d.dow === dow);
   const log = dayLog();
   const rows = [...R.days].sort((a, b) => a.dow - b.dow).map(d => {
-    const n = d.exercises.filter(e => doneSets(log?.ex?.[e.key]).length).length;
+    const n = d.exercises.filter(e => doneSets(exEntry(date, e.key, d.id)).length).length;
     return `<a class="row ${d === today ? 'today' : ''}" href="#/day/${d.id}">
       <span class="dow">${DOW[d.dow].slice(0, 3)}</span>
       <span class="grow"><b>${esc(d.title)}</b><small>${d.exercises.length} ejercicios</small></span>
@@ -205,7 +206,7 @@ function viewDay(id) {
     const items = d.exercises.map((e, i) => [e, i]).filter(([e]) => e.section === sec);
     if (!items.length) return '';
     return `<h3 class="section">${label}</h3><div class="list">${items.map(([e, i]) => {
-      const n = doneSets(log?.ex?.[e.key]).length;
+      const n = doneSets(exEntry(activeDate(), e.key, d.id)).length;
       const last = sessionsFor(e.key, activeDate())[0];
       const lastTxt = last ? (e.type === 'weight' ? `últ: ${num(topWeight(last))} kg` : `últ: ${bestReps(last)} ${unitLabel(e)}`) : 'nuevo';
       return `<a class="row ${n >= e.setsMin ? 'complete' : ''}" href="#/ex/${d.id}/${i}">
@@ -239,7 +240,7 @@ function viewEx(dayId, idx) {
   const sug = suggest(e, firstHeavy);
   ctx = { d, i, e, sug };
 
-  const cur = dayLog()?.ex?.[e.key];
+  const cur = exEntry(activeDate(), e.key, d.id);
   const lastSets = sug.last?.sets?.filter(x => x.r > 0) || [];
   const rows = Math.max(e.setsMax, cur?.sets?.length || 0);
   const link = state.links[e.key] || '';
@@ -393,7 +394,7 @@ function exercisesSection(names) {
   const pool = histFilter === 'all' ? days : days.filter(d => d.id === histFilter);
   const keys = [...new Set(pool.flatMap(d => d.exercises.map(e => e.key)))];
   if (histFilter === 'all') { // ejercicios que ya no están en la rutina pero tienen historial
-    for (const l of Object.values(state.logs)) for (const k of Object.keys(l.ex || {})) if (!keys.includes(k)) keys.push(k);
+    for (const l of Object.values(state.logs)) for (const k of Object.keys(l.ex || {}).map(baseKey)) if (!keys.includes(k)) keys.push(k);
   }
 
   const withData = [], empty = [];
@@ -562,9 +563,7 @@ async function showStorage() {
 // ---------- Registro de series ----------
 
 function setSet(e, k, patch) {
-  const L = ensureLog();
-  L.ex ??= {};
-  const x = L.ex[e.key] ??= { sets: [] };
+  const x = ensureExEntry(activeDate(), e.key, ctx.d.id);
   while (x.sets.length <= k) x.sets.push({});
   Object.assign(x.sets[k], patch);
   save();
@@ -651,10 +650,9 @@ document.addEventListener('change', async ev => {
       const k = Number(t.dataset.i);
       const v = parseNum(t.value);
       setSet(e, k, { [f]: f === 'r' && v != null ? Math.round(v) : v });
-      t.closest('.set').classList.toggle('done', dayLog().ex[e.key].sets[k].r > 0);
+      t.closest('.set').classList.toggle('done', exEntry(activeDate(), e.key, ctx.d.id).sets[k].r > 0);
     } else if (f === 'note') {
-      const L = ensureLog();
-      ((L.ex ??= {})[e.key] ??= { sets: [] }).note = t.value.trim();
+      ensureExEntry(activeDate(), e.key, ctx.d.id).note = t.value.trim();
       save();
     } else if (f === 'link') {
       const v = t.value.trim();
@@ -700,7 +698,7 @@ document.addEventListener('click', async ev => {
     row.classList.add('done');
     startRest(e.heavy ? 150 : e.section === 'core' ? 60 : 90);
   } else if (action === 'add-set' && ctx) {
-    const cur = dayLog()?.ex?.[ctx.e.key];
+    const cur = exEntry(activeDate(), ctx.e.key, ctx.d.id);
     setSet(ctx.e, Math.max(ctx.e.setsMax, cur?.sets?.length || 0), {});
     render({ keep: true });
   } else if (action === 'video-del' && ctx) {

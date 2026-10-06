@@ -84,6 +84,36 @@ export const trainedOn = d => Object.values(state.logs[d]?.ex || {}).some(x => d
 export const plannedDay = d => state.routine.days.find(x => x.dow === toDate(d).getDay());
 export const isTrainingDay = d => trainedOn(d) || !!plannedDay(d);
 
+// Registro de ejercicios por día de rutina.
+// logs[fecha].ex[slot] = { sets, note, day }. El slot es la key del ejercicio; si ese mismo ejercicio
+// se hace en otro día de rutina en la misma fecha, va en "key#díaId". Así martes y sábado no se
+// mezclan aunque compartan ejercicios, y la progresión (que usa la key base) sigue siendo común.
+export const baseKey = slot => slot.split('#')[0];
+// Registros viejos no guardaban el día: se asumen del día planificado para esa fecha.
+const entryDay = (entry, date) => entry.day ?? plannedDay(date)?.id ?? null;
+
+export function exEntry(date, key, dayId) {
+  const ex = state.logs[date]?.ex;
+  if (!ex) return null;
+  for (const [slot, entry] of Object.entries(ex)) {
+    if (baseKey(slot) === key && entryDay(entry, date) === dayId) return entry;
+  }
+  return null;
+}
+
+export function ensureExEntry(date, key, dayId) {
+  const found = exEntry(date, key, dayId);
+  if (found) return found;
+  const L = state.logs[date] ??= {};
+  L.ex ??= {};
+  const slot = L.ex[key] ? `${key}#${dayId}` : key;
+  return L.ex[slot] = { sets: [], day: dayId };
+}
+
+// Todos los registros de un ejercicio en una fecha (de cualquier día de rutina).
+export const exEntriesOn = (date, key) =>
+  Object.entries(state.logs[date]?.ex || {}).filter(([slot]) => baseKey(slot) === key).map(([, e]) => e);
+
 export function exerciseNames() {
   const names = {};
   for (const d of state.routine.days) for (const e of d.exercises) names[e.key] ??= e;
