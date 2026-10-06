@@ -1,13 +1,14 @@
 import { DEFAULT_ROUTINE, ex, slug } from './routine.js';
 import {
-  state, save, replaceState, ui, DOW,
+  state, save, replaceState, ui, env, DOW,
   esc, num, parseNum, roundTo, pad, todayStr, toDate, addDays, fmtDate, isUrl,
   activeDate, setActiveDate, dayLog, ensureLog, dateBanner,
   doneSets, unitLabel, fmtSet, exerciseNames, topbar, gear, chart,
 } from './store.js';
-import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan } from './food.js';
+import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { viewCalendar, viewDate, weekStats } from './calendar.js';
 import { anthroCard, viewBody } from './anthro.js';
+import * as native from './native.js';
 
 const SECTIONS = [['main', 'Principal'], ['core', 'Core'], ['extra', 'Extra']];
 const TYPES = [['weight', 'Peso × reps'], ['reps', 'Solo reps (peso corporal)'], ['time', 'Tiempo (segundos)']];
@@ -420,12 +421,43 @@ function viewExerciseHistory(k, names) {
 
 // ---------- Vistas: ajustes ----------
 
+function nativeSettings() {
+  const w = state.settings.water;
+  const hours = (sel, from, to) => Array.from({ length: to - from + 1 }, (_, k) => from + k)
+    .map(h => `<option value="${h}" ${h === sel ? 'selected' : ''}>${h}:00</option>`).join('');
+  const every = [[1, 'cada 1 h'], [1.5, 'cada 1 h 30'], [2, 'cada 2 h'], [3, 'cada 3 h']]
+    .map(([v, l]) => `<option value="${v}" ${v === w.every ? 'selected' : ''}>${l}</option>`).join('');
+  return `
+    <section class="card">
+      <h3>⌚ Sueño desde el reloj</h3>
+      <p class="muted small">Lee las horas de sueño que Samsung Health, Zepp u otras apps guardan en <b>Health Connect</b>. Solo lectura, y solo el sueño.</p>
+      ${env.health
+        ? '<p class="small">✅ Conectado. El sueño se carga solo al abrir la app.</p>'
+        : '<p class="small">Primero activá en Samsung Health o Zepp la opción de compartir datos con Health Connect.</p>'}
+      <div class="btns">
+        ${env.health ? '' : '<button class="btn small primary" data-action="health-connect">Conectar Health Connect</button>'}
+        <button class="btn small" data-action="health-open">Abrir Health Connect</button>
+      </div>
+    </section>
+    <section class="card">
+      <h3>💧 Recordatorios de agua</h3>
+      <label class="check-row"><input type="checkbox" data-action="water-enabled" ${w.enabled ? 'checked' : ''}> Avisarme para tomar agua</label>
+      <div class="grid3">
+        <label class="stack">Desde<select data-action="water-cfg" data-k="from">${hours(w.from, 5, 14)}</select></label>
+        <label class="stack">Hasta<select data-action="water-cfg" data-k="to">${hours(w.to, 15, 23)}</select></label>
+        <label class="stack">Frecuencia<select data-action="water-cfg" data-k="every">${every}</select></label>
+      </div>
+      <p class="muted small">La notificación trae un botón <b>Tomé un vaso</b> que lo suma sin abrir la app.</p>
+    </section>`;
+}
+
 function viewSettings() {
   const p = plan();
   const prep = state.settings.mealPrepDow;
   const dowOpts = ['<option value="">No recordar</option>', ...DOW.map((d, k) => `<option value="${k}" ${prep != null && prep !== '' && Number(prep) === k ? 'selected' : ''}>${d}</option>`)].join('');
   return `
     ${topbar('Ajustes', '#/')}
+    ${env.native ? nativeSettings() : ''}
     <section class="card">
       <h3>Plan de alimentación</h3>
       ${p ? `<p class="muted small">${esc(p.title || 'Plan cargado')}${p.goal ? ` · ${esc(p.goal)}` : ''}</p>` : '<p class="muted small">No hay plan cargado.</p>'}
@@ -488,6 +520,7 @@ function render({ keep = false } = {}) {
   } else requestAnimationFrame(() => window.scrollTo(0, 0));
   if (ctx) showVideo(ctx.e.key);
   if (view === 'settings') showStorage();
+  if (view === 'food') syncSleep(activeDate());
 }
 ui.render = render;
 history.scrollRestoration = 'manual';
@@ -540,6 +573,19 @@ document.addEventListener('change', async ev => {
     save();
   } else if (action === 'deload-toggle') {
     t.checked ? deloadOn() : deloadOff();
+  } else if (action === 'water-enabled' || action === 'water-cfg') {
+    const w = state.settings.water;
+    if (action === 'water-enabled') w.enabled = t.checked; else w[t.dataset.k] = Number(t.value);
+    save();
+    try {
+      const n = await native.scheduleWater(w, glassMl());
+      if (action === 'water-enabled' && w.enabled) alert(`Listo: ${n} recordatorios por día, de ${w.from}:00 a ${w.to}:00.`);
+    } catch (err) {
+      w.enabled = false;
+      save();
+      render({ keep: true });
+      alert('No se pudieron programar los recordatorios: ' + err.message);
+    }
   } else if (action === 'meal-prep') {
     state.settings.mealPrepDow = t.value === '' ? null : Number(t.value);
     save();
@@ -628,6 +674,22 @@ document.addEventListener('click', async ev => {
     render({ keep: true });
   } else if (action === 'video-del' && ctx) {
     if (confirm('¿Quitar el video guardado de este ejercicio?')) { await vdel(ctx.e.key); showVideo(ctx.e.key); }
+  } else if (action === 'export' && env.native) {
+    try { await native.shareFile(`gym-backup-${todayStr()}.json`, JSON.stringify(state, null, 2)); }
+    catch (err) { if (!/cancel/i.test(err.message)) alert('No se pudo exportar: ' + err.message); }
+  } else if (action === 'health-connect') {
+    try {
+      env.health = await native.connectHealth();
+      state.settings.healthSleep = env.health;
+      save();
+      if (!env.health) alert('No se dio permiso para leer el sueño. Podés activarlo desde Health Connect.');
+      else syncSleep(todayStr(), true);
+      render({ keep: true });
+    } catch (err) { alert(err.message); }
+  } else if (action === 'health-open') {
+    native.openHealthSettings().catch(err => alert(err.message));
+  } else if (action === 'sleep-sync') {
+    syncSleep(activeDate(), true);
   } else if (action === 'export') {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `gym-backup-${todayStr()}.json` });
@@ -690,6 +752,43 @@ function deloadOff() { state.settings.deload = false; state.settings.lastDeload 
 
 // ---------- Arranque ----------
 
+// Sueño desde Health Connect: se trae una vez por fecha y sesión, salvo que se haya cargado a mano.
+const sleepSynced = new Set();
+async function syncSleep(date, force = false) {
+  if (!env.health) return;
+  const F = state.logs[date]?.food;
+  if (!force && (F?.sleepManual || sleepSynced.has(date))) return;
+  sleepSynced.add(date);
+  try {
+    const r = await native.readSleep(date);
+    if (!r) { if (force) alert('No encontré sueño registrado para esa noche en Health Connect.'); return; }
+    const food = ensureLog(date).food ??= {};
+    Object.assign(food, { sleep: r.hours, sleepSource: r.source });
+    delete food.sleepManual;
+    save();
+    render({ keep: true });
+  } catch (err) {
+    if (force) alert('No se pudo leer el sueño: ' + err.message);
+  }
+}
+
+env.native = await native.initNative().catch(() => false);
 render();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+if (env.native) {
+  if (state.settings.healthSleep) env.health = await native.healthAuthorized();
+  native.onWaterNotification(kind => {
+    if (kind === 'glass') {
+      const food = ensureLog(todayStr()).food ??= {};
+      food.water = (food.water || 0) + 1;
+      save();
+    }
+    location.hash = '#/food';
+    render({ keep: true });
+  });
+  native.onResume(() => { sleepSynced.delete(todayStr()); syncSleep(todayStr()); render({ keep: true }); });
+  syncSleep(todayStr());
+  render();
+} else if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
 navigator.storage?.persist?.();

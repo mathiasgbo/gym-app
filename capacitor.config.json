@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.mathiasgbo.gymapp",
+  "appName": "Gym",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#111418"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_water",
+      "iconColor": "#60a5fa"
+    }
+  }
+}

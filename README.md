@@ -21,3 +21,22 @@ node .claude/serve.mjs
 y abrir http://localhost:5173.
 
 Los datos viven en el navegador del teléfono. Exportá un backup desde Ajustes cada tanto.
+
+## App de Android (APK)
+
+La misma app empaquetada con Capacitor, con extras nativos (`native.js`):
+sueño desde Health Connect (Samsung Health, Zepp…), recordatorios de agua con botón
+"Tomé un vaso" y exportar backups con el menú de compartir.
+
+Requisitos: Android Studio instalado (trae Java y el SDK).
+
+```bash
+npm install
+```
+
+```bash
+npm run apk
+```
+
+La APK queda en `release/Gym.apk`. `npm run apk` copia la web a `www/`, sincroniza el proyecto
+`android/` y compila. Gradle descarga solo el Java 21 que piden los plugins.

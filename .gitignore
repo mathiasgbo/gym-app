@@ -1,2 +1,5 @@
 .claude/
 privado/
+node_modules/
+www/
+release/

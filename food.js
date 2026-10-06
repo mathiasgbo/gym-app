@@ -2,7 +2,7 @@
 // (no está en el código porque el repositorio es público).
 import {
   state, save, ui, esc, num, activeDate, dayLog, ensureLog, dateBanner,
-  isTrainingDay, topbar, gear, todayStr, toDate, DOW,
+  isTrainingDay, topbar, gear, todayStr, toDate, DOW, env,
 } from './store.js';
 
 const SEP = '|';
@@ -137,6 +137,8 @@ export function viewFood() {
         </div>
         <div class="stat">
           <div class="stat-h">😴 Sueño <b>${f.sleep != null ? num(f.sleep) + ' h' : '—'}</b> <small class="inline">objetivo ${p.sleep?.min ?? 7}-${p.sleep?.max ?? 8} h</small></div>
+          ${env.health ? `<div class="sleep-src"><small class="inline">${f.sleepSource && !f.sleepManual ? `⌚ de ${esc(f.sleepSource)}` : f.sleepManual ? "✎ cargado a mano" : "⌚ sin datos del reloj"}</small>
+            <button class="btn small ghost" data-action="sleep-sync">↻ Traer del reloj</button></div>` : ""}
           <div class="stepper">
             <button class="btn small" data-action="sleep" data-d="-0.5" aria-label="Menos sueño">−</button>
             <span>horas dormidas</span>
@@ -182,6 +184,7 @@ document.addEventListener('click', ev => {
   } else if (a === 'sleep') {
     const F = ensureLog().food ??= {};
     F.sleep = Math.min(14, Math.max(0, (F.sleep ?? (plan()?.sleep?.min || 7)) + Number(btn.dataset.d)));
+    F.sleepManual = true; // no pisar con lo que venga del reloj
   } else return;
   save();
   ui.render({ keep: true });

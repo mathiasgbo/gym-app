@@ -286,3 +286,7 @@ label.stack { display: flex; flex-direction: column; gap: 6px; margin-top: 12px;
 .trend.up { color: var(--up); }
 .trend.down { color: var(--down); }
 .empty-list summary { font-weight: 500; color: var(--muted); font-size: 14px; }
+
+/* App Android */
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sleep-src { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -2px 0 6px; }

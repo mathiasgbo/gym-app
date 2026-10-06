@@ -15,7 +15,11 @@ export const fresh = () => ({
   body: {},   // { 'YYYY-MM-DD': kg }
   food: { plan: null },
   anthro: [], // mediciones importadas de los informes PDF
-  settings: { deload: false, lastDeload: null, mealPrepDow: null },
+  settings: {
+    deload: false, lastDeload: null, mealPrepDow: null,
+    water: { enabled: false, from: 9, to: 21, every: 2 }, // recordatorios (solo app Android)
+    healthSleep: false,                                    // leer sueño de Health Connect (solo app Android)
+  },
 });
 
 function normalize(s) {
@@ -39,6 +43,9 @@ export function replaceState(s) { state = normalize(s); save(); }
 
 // app.js asigna ui.render para que los módulos puedan volver a dibujar.
 export const ui = { render: () => {} };
+
+// Entorno: native = app de Android (Capacitor); health = permiso de sueño de Health Connect concedido.
+export const env = { native: false, health: false };
 
 // ---------- Utilidades ----------
 
