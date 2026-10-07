@@ -10,8 +10,9 @@
 // Temple no envía el plan a ningún lado: el usuario lo comparte con su IA si quiere.
 import { state, save, ui, esc, num, parseNum, topbar, env } from './store.js';
 import { FOODS, findFood, nutrients, searchFoods, norm } from './foods.js';
-import { pdfPages } from './anthro-parse.js';
 import * as native from './native.js';
+import { fileToText, DOC_ACCEPT } from './doctext.js';
+import { sendToAi, aiButtons, openAiSite, watchClipboard, readClipboard } from './ai-share.js';
 
 const CATS = [['prot', 'Proteína'], ['hc', 'Hidratos'], ['grasa', 'Grasa'], ['veg', 'Vegetales'], ['fruta', 'Fruta'], ['otro', 'Otro']];
 const CAT = Object.fromEntries(CATS);
@@ -24,6 +25,9 @@ let aiText = '';           // texto extraído del PDF (o pegado)
 let aiInfo = '';           // aviso sobre la lectura del PDF
 let aiResult = '';         // respuesta pegada de la IA
 let linkQ = '';            // búsqueda en la pantalla de vincular
+let aiSites = false;       // web: mostrar los botones de cada IA
+
+const looksLikePlan = t => /gymapp-food-plan/.test(t) || (/"groups"/.test(t) && /"meals"/.test(t));
 
 // ---------- Utilidades ----------
 
@@ -102,13 +106,6 @@ ${text || '(Lo adjunto como archivo PDF)'}
 """`;
 }
 
-async function readPdfText(file) {
-  const pdfjs = await import('./lib/pdf.min.mjs');
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL('./lib/pdf.worker.min.mjs', import.meta.url).href;
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-  const pages = await pdfPages(doc);
-  return { pages: pages.length, text: pages.join('\n\n').replace(/[ \t]+/g, ' ').trim() };
-}
 
 // ---------- Interpretar la respuesta de la IA ----------
 
@@ -217,33 +214,35 @@ export function viewPlanHub() {
 }
 
 export function viewPlanAi() {
-  const canShare = env.native || !!navigator.share;
+  const ready = !!aiText;
   return `
-    ${topbar('Plan desde un PDF', '#/plan')}
+    ${topbar('Plan con tu IA', '#/plan')}
     <section class="card step">
-      <h3><span class="step-n">1</span> Tu plan</h3>
-      <label class="btn block">📄 Elegir el PDF del plan<input type="file" accept="application/pdf,.pdf" data-action="plan-pdf" hidden></label>
-      ${aiInfo ? `<p class="small ${aiText ? 'ok-text' : 'warn-text'}">${esc(aiInfo)}</p>` : ''}
-      <details ${aiText && !aiInfo ? 'open' : ''}><summary class="muted small">o pegá el texto del plan</summary>
+      <h3><span class="step-n">1</span> Elegí tu plan</h3>
+      <label class="btn block">📄 PDF, Word o texto<input type="file" accept="${DOC_ACCEPT}" data-action="plan-pdf" hidden></label>
+      ${aiInfo ? `<p class="small ${ready ? 'ok-text' : 'warn-text'}">${esc(aiInfo)}</p>` : ''}
+      <details><summary class="muted small">o pegá el texto del plan</summary>
         <textarea data-field="plan-text" rows="5" placeholder="Pegá acá el texto de tu plan">${esc(aiText)}</textarea></details>
     </section>
     <section class="card step">
-      <h3><span class="step-n">2</span> Pasáselo a tu IA</h3>
-      <p class="muted small">Temple arma un pedido con el formato exacto que necesita${aiText ? ' y el texto de tu plan' : ''}. Pegalo en ChatGPT, Gemini, Claude o la IA que uses.${aiText ? '' : ' Si no cargaste el texto, adjuntá el PDF en la conversación con tu IA.'}</p>
-      <div class="btns">
-        <button class="btn primary" data-action="plan-copy">Copiar pedido</button>
-        ${canShare ? '<button class="btn" data-action="plan-share">Compartir con tu IA</button>' : ''}
-      </div>
+      <h3><span class="step-n">2</span> Enviáselo a tu IA</h3>
+      <button class="btn primary block big" data-action="plan-send">✨ Enviar a mi IA</button>
+      <p class="muted small">${env.native
+        ? 'Se abre el menú para elegir tu IA (ChatGPT, Gemini, Claude…) con el pedido completo ya escrito.'
+        : 'Elegí tu IA: el pedido completo queda copiado para pegarlo.'}${ready ? '' : ' Si tu plan es una foto o un PDF escaneado, adjuntalo en la conversación con tu IA.'}</p>
+      ${aiSites ? `<div class="btns">${aiButtons('plan-site')}</div>` : ''}
     </section>
     <section class="card step">
-      <h3><span class="step-n">3</span> Pegá la respuesta</h3>
-      <textarea data-field="plan-result" rows="6" placeholder="Pegá acá lo que te respondió tu IA">${esc(aiResult)}</textarea>
-      <div class="btns">
-        <button class="btn small" data-action="plan-paste">Pegar</button>
-        <button class="btn primary" data-action="plan-parse">Revisar el plan ›</button>
-      </div>
+      <h3><span class="step-n">3</span> Volvé con la respuesta</h3>
+      <p class="muted small">Cuando tu IA responda, <b>copiá su respuesta y volvé a Temple</b>: la toma sola y te muestra el plan para revisar.</p>
+      <details ${aiResult ? 'open' : ''}><summary class="muted small">¿No la tomó? Pegala acá</summary>
+        <textarea data-field="plan-result" rows="5" placeholder="Pegá acá lo que te respondió tu IA">${esc(aiResult)}</textarea>
+        <div class="btns">
+          <button class="btn small" data-action="plan-paste">Pegar</button>
+          <button class="btn primary" data-action="plan-parse">Revisar el plan ›</button>
+        </div></details>
     </section>
-    <p class="muted small">Temple no envía tu plan a ningún lado: vos decidís con qué IA compartirlo.</p>`;
+    <p class="muted small">Temple no envía tu plan a ningún lado: vos elegís con qué IA compartirlo.</p>`;
 }
 
 function groupsHtml(p, target) {
@@ -265,7 +264,7 @@ export function viewPlanReview() {
     <section class="card">
       <b class="plan-title">${esc(draft.title)}</b>
       <small>${draft.goal ? `${esc(draft.goal)} · ` : ''}💧 ${num(draft.water.targetMl / 1000)} L · 😴 ${draft.sleep.min}-${draft.sleep.max} h</small>
-      <p class="small">${st.meals} comidas · ${st.groups} grupos · ${st.options} opciones · <b>${st.linked} vinculadas</b> a la base${st.linked < st.options || st.approx ? ` · revisá ${st.options - st.linked + st.approx} marcada${st.options - st.linked + st.approx === 1 ? '' : 's'} con ⚠ o ≈` : ' ✓'}</p>
+      <p class="small">${st.meals} comida${st.meals === 1 ? "" : "s"} · ${st.groups} grupo${st.groups === 1 ? "" : "s"} · ${st.options} opci${st.options === 1 ? "ón" : "ones"} · <b>${st.linked} vinculadas</b> a la base${st.linked < st.options || st.approx ? ` · revisá ${st.options - st.linked + st.approx} marcada${st.options - st.linked + st.approx === 1 ? '' : 's'} con ⚠ o ≈` : ' ✓'}</p>
     </section>
     <h3 class="section">Comidas</h3>
     <div class="list">${draft.meals.map(m => `<div class="row"><span class="grow"><b>${esc(m.name)}</b>
@@ -427,10 +426,6 @@ function exportPlan() {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-async function shareText(text) {
-  if (env.native) return native.shareText(text);
-  return navigator.share({ text });
-}
 
 document.addEventListener('input', ev => {
   const t = ev.target;
@@ -451,16 +446,20 @@ document.addEventListener('change', async ev => {
   const hashId = decodeURIComponent(location.hash.split('/')[3] || '');
 
   if (a === 'plan-pdf' && t.files?.[0]) {
-    aiInfo = 'Leyendo el PDF…';
+    aiInfo = 'Leyendo el archivo…';
     ui.render({ keep: true });
     try {
-      const { pages, text } = await readPdfText(t.files[0]);
-      aiText = text.length > 80 ? text : '';
+      const r = await fileToText(t.files[0]);
+      // Si ya es un plan de Temple (.json), se carga directo
+      if (r.kind === 'json') {
+        try { draft = parseAiPlan(r.text); aiInfo = ''; location.hash = '#/plan/review'; return; } catch {}
+      }
+      aiText = r.text.length > 80 ? r.text : '';
       aiInfo = aiText
-        ? `✓ Leí ${pages} página${pages === 1 ? '' : 's'} (${text.length.toLocaleString('es-AR')} caracteres). Seguí con el paso 2.`
-        : 'Este PDF parece una imagen escaneada y no tiene texto para leer. Copiá el pedido y adjuntá el PDF directamente en tu IA.';
+        ? `✓ Leí tu plan${r.pages ? ` (${r.pages} página${r.pages === 1 ? '' : 's'})` : ''}. Ahora tocá "Enviar a mi IA".`
+        : 'Este archivo no tiene texto para leer (¿foto o PDF escaneado?). Tocá "Enviar a mi IA" y adjuntalo en la conversación.';
     } catch (err) {
-      aiInfo = `No se pudo leer el PDF (${err.message}). Copiá el pedido y adjuntá el PDF en tu IA.`;
+      aiInfo = `${err.message}`;
     }
     ui.render({ keep: true });
     return;
@@ -504,14 +503,21 @@ document.addEventListener('click', async ev => {
   const p = plan();
   const hashId = decodeURIComponent(location.hash.split('/')[3] || '');
 
-  if (a === 'plan-copy') {
-    try { await navigator.clipboard.writeText(buildPrompt(aiText)); alert('Pedido copiado. Pegalo en tu IA y, cuando responda, copiá la respuesta completa.'); }
-    catch { alert('No se pudo copiar automáticamente. Probá con "Compartir con tu IA".'); }
-  } else if (a === 'plan-share') {
-    try { await shareText(buildPrompt(aiText)); } catch (err) { if (!/cancel|abort/i.test(err.message)) alert(err.message); }
+  if (a === 'plan-send') {
+    // Al volver de la IA, si en el portapapeles hay un plan, se abre la revisión sola
+    watchClipboard(looksLikePlan, t => {
+      aiResult = t;
+      try { draft = parseAiPlan(t); location.hash = '#/plan/review'; } catch (err) { ui.render({ keep: true }); alert(err.message); }
+    });
+    const r = await sendToAi(buildPrompt(aiText));
+    aiSites = r === 'choose';
+    ui.render({ keep: true });
+  } else if (a === 'plan-site') {
+    openAiSite(btn.dataset.url, buildPrompt(aiText));
   } else if (a === 'plan-paste') {
-    try { aiResult = await navigator.clipboard.readText(); ui.render({ keep: true }); }
-    catch { alert('No pude leer el portapapeles. Mantené apretado el cuadro de texto y elegí "Pegar".'); }
+    aiResult = await readClipboard();
+    if (!aiResult) alert('No pude leer el portapapeles. Mantené apretado el cuadro de texto y elegí "Pegar".');
+    ui.render({ keep: true });
   } else if (a === 'plan-parse') {
     try { draft = parseAiPlan(aiResult); location.hash = '#/plan/review'; }
     catch (err) { alert(err.message); }

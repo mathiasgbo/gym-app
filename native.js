@@ -164,6 +164,10 @@ export function onResume(cb) {
   plugin('App').addListener('resume', cb);
 }
 
+// Portapapeles nativo (más confiable que el de la WebView).
+export const copyText = text => plugin('Clipboard').write({ string: text });
+export const readClipboard = async () => (await plugin('Clipboard').read()).value || '';
+
 // Compartir texto con otra app (por ejemplo, con la IA que use el usuario).
 export const shareText = text => plugin('Share').share({ text, dialogTitle: 'Compartir con tu IA' });
 

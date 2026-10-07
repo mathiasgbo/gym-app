@@ -9,6 +9,7 @@ import {
 import { needsProfile, viewOnboarding, editProfile, setNotice } from './profile.js';
 import { viewRoutine, viewRoutineDay, viewEditExercise, viewLibrary, viewReplace, viewNewExercise } from './routine-editor.js';
 import { viewRoutines, isRoutineFile, viewTemplates, viewTemplate, templateCards } from './routines.js';
+import { viewRoutineImport, viewRoutineReview, viewRoutinePick } from './routine-import.js';
 import { viewPlanHub, viewPlanAi, viewPlanReview, viewPlanEdit, viewPlanMeal, viewPlanGroup, viewPlanLink } from './plan-tools.js';
 import { viewFood, foodSummaryLine, mealPrepBanner, plan, validPlan, glassMl } from './food.js';
 import { energy, avgKcal, ACTIVITY, GOALS } from './nutrition.js';
@@ -196,8 +197,7 @@ function viewHome() {
     ${templateCards()}
     <h3 class="section">Otras opciones</h3>
     <a class="ob-card pick" href="#/routine"><span><b>Desde cero</b><small>Armá tus días y elegí los ejercicios de la biblioteca.</small></span></a>
-    <label class="ob-card pick"><span><b>Importar un archivo</b><small>Una rutina que te pasó tu entrenador o un amigo.</small></span>
-      <input type="file" accept="application/json,.json" data-action="routine-import" hidden></label>`}
+    <a class="ob-card pick" href="#/rimport"><span><b>Importar o pegar</b><small>La rutina de tu entrenador: PDF, Word o el texto de WhatsApp.</small></span></a>`}
     <details class="card info">
       <summary>${esc(R.name)} — reglas</summary>
       <dl>
@@ -514,7 +514,7 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 // ---------- Router ----------
 
 const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
-const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', plan: 'food', routine: '', routines: '', tpls: '', tpl: '', rday: '', lib: '', replace: '', newex: '' };
+const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', plan: 'food', rimport: '', routine: '', routines: '', tpls: '', tpl: '', rday: '', lib: '', replace: '', newex: '' };
 
 function render({ keep = false } = {}) {
   const [, view = '', a, b, c, x] = (location.hash || '#/').split('/');
@@ -533,6 +533,7 @@ function render({ keep = false } = {}) {
     '': viewHome, day: () => viewDay(a), ex: () => viewEx(a, b), edit: () => viewEditExercise(a, b, c),
     plan: () => ({ '': viewPlanHub, ai: viewPlanAi, review: viewPlanReview, edit: viewPlanEdit,
       meal: () => viewPlanMeal(b), group: () => viewPlanGroup(b), link: () => viewPlanLink(b, c, x) }[a || '']?.() ?? notFound()),
+    rimport: () => a === 'review' ? viewRoutineReview() : a === 'pick' ? viewRoutinePick(+b, +c) : viewRoutineImport(),
     routine: viewRoutine, routines: viewRoutines, tpls: viewTemplates, tpl: () => viewTemplate(a), rday: () => viewRoutineDay(a), lib: () => viewLibrary(a, b),
     replace: () => viewReplace(a, b, c), newex: () => viewNewExercise(a, b),
     food: viewFood, cal: () => viewCalendar(a), date: () => viewDate(a) || notFound(),

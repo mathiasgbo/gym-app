@@ -117,9 +117,8 @@ export function viewRoutines() {
         <span><b>Duplicar la actual</b><small>Ideal para pasar al mes siguiente: copiás "${esc(R.name)}" y la ajustás.</small></span></button>
       <button class="ob-card pick" data-action="routine-blank">
         <span><b>En blanco</b><small>Armá los días y los ejercicios desde cero.</small></span></button>
-      <label class="ob-card pick">
-        <span><b>Importar un archivo</b><small>Una rutina que te pasó tu entrenador o un amigo (archivo .json de Temple).</small></span>
-        <input type="file" accept="application/json,.json" data-action="routine-import" hidden></label>
+      <a class="ob-card pick" href="#/rimport">
+        <span><b>Importar o pegar</b><small>La rutina de tu entrenador: PDF, Word, texto de WhatsApp o un archivo de Temple.</small></span></a>
     </div>
     <h3 class="section">Archivadas</h3>
     ${rows || '<p class="muted small">Cuando cambies de rutina, la anterior queda guardada acá.</p>'}

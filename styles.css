@@ -508,3 +508,14 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .link-row { gap: 8px; margin-top: 8px; }
 .link-row .grams { width: 76px; flex: none; text-align: center; }
 .plan-opt.approx { border-color: color-mix(in srgb, var(--hold) 35%, transparent); }
+
+/* Importar rutina */
+.rr-day { display: flex; gap: 8px; margin-bottom: 6px; }
+.rr-day input { flex: 1; font-weight: 600; }
+.rr-day select { width: 130px; flex: none; }
+.rr-ex { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-top: 1px solid var(--border); }
+.rr-ex b { display: block; font-size: 15px; font-weight: 600; }
+.rr-icon { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: color-mix(in srgb, var(--up) 20%, var(--surface-2)); color: var(--up); }
+.rr-ex.approx .rr-icon { background: color-mix(in srgb, var(--hold) 22%, var(--surface-2)); color: var(--hold); }
+.rr-ex.new .rr-icon { background: color-mix(in srgb, var(--calm) 22%, var(--surface-2)); color: var(--calm); }
+.lib-row.picked { border-color: var(--accent); }
