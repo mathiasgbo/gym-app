@@ -177,6 +177,7 @@ function viewHome() {
 
   return `
     ${brandbar()}
+    ${iosInstallHint()}
     ${dateBanner()}
     ${deloadBanner()}
     ${date === todayStr() ? mealPrepBanner() : ''}
@@ -585,12 +586,50 @@ function startRest(secs) {
     const t = Math.floor((Date.now() - start) / 1000);
     $rest.innerHTML = `<span>Descanso <b>${fmt(t)}</b> / ${fmt(secs)}</span><button data-action="rest-stop" aria-label="Cerrar">✕</button>`;
     $rest.classList.toggle('ready', t >= secs);
-    if (t >= secs && !buzzed) { buzzed = true; navigator.vibrate?.([200, 100, 200]); }
+    if (t >= secs && !buzzed) { buzzed = true; if (!navigator.vibrate?.([200, 100, 200])) beep(); }
   };
   $rest.hidden = false;
   tick();
   restTimer = setInterval(tick, 1000);
 }
+// Dos tonos cortos al terminar el descanso (para iPhone, donde la web no puede vibrar).
+let audio;
+function beep() {
+  try {
+    audio ??= new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25].forEach(at => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.25, audio.currentTime + at);
+      g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + at + 0.18);
+      o.connect(g).connect(audio.destination);
+      o.start(audio.currentTime + at);
+      o.stop(audio.currentTime + at + 0.2);
+    });
+  } catch {}
+}
+// En iPhone el audio solo arranca después de un toque: se "despierta" al marcar una serie.
+document.addEventListener('click', ev => {
+  if (ev.target.closest('[data-action="check"]') && !navigator.vibrate) {
+    try { audio ??= new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {}
+  }
+}, true);
+
+// Sugerencia para instalar la app en iPhone (Safari no muestra un botón propio).
+const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone;
+function iosInstallHint() {
+  if (!isIos || standalone || env.native || state.settings.iosHintHidden) return '';
+  return `<div class="banner ios-hint"><div>📲 <b>Instalá Temple</b>: tocá <b>Compartir</b> (el cuadrado con la flecha) y después <b>"Agregar a inicio"</b>. Así funciona sin señal y a pantalla completa.</div>
+    <button class="btn small ghost" data-action="ios-hint-hide" aria-label="Cerrar">✕</button></div>`;
+}
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('[data-action="ios-hint-hide"]')) return;
+  state.settings.iosHintHidden = true;
+  save();
+  render({ keep: true });
+});
+
 function stopRest() { clearInterval(restTimer); $rest.hidden = true; }
 
 // ---------- Eventos ----------
@@ -792,6 +831,13 @@ if (env.native) {
   syncSleep(todayStr());
   render();
 } else if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
+  // Cuando una versión nueva toma el control, recargar una vez para usarla completa.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && !reloading) { reloading = true; location.reload(); }
+  });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .then(reg => { document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update(); }); });
 }
 navigator.storage?.persist?.();
