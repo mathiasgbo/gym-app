@@ -1,7 +1,7 @@
 # Temple — material para Google Play Console
 
 Paquete: `com.mgb.temple` · Pista: **Prueba interna** · Política de privacidad:
-https://mathiasgbo.github.io/gym-app/privacypolicy.html
+https://mathiasgbo.github.io/temple/privacypolicy.html
 
 Archivos en esta carpeta: `icon-512.png` (ícono), `feature-graphic.png` (gráfico de funciones 1024×500).
 Capturas de pantalla (6, con datos de ejemplo): `play/screenshots/`. No se suben a GitHub porque muestran el plan de alimentación.
@@ -57,7 +57,7 @@ Temple funciona sin conexión.
 
 | Sección | Respuesta |
 |---|---|
-| Política de privacidad | https://mathiasgbo.github.io/gym-app/privacypolicy.html |
+| Política de privacidad | https://mathiasgbo.github.io/temple/privacypolicy.html |
 | Acceso a la app | Todas las funciones están disponibles sin restricciones (no hay login). |
 | Anuncios | No contiene anuncios. |
 | Clasificación de contenido | Categoría *Utilidad, productividad, comunicación u otra*. Responder **No** a todo (violencia, sexo, apuestas, interacción entre usuarios, compras, ubicación). |
