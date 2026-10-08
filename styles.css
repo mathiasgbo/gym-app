@@ -520,7 +520,7 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .rr-ex.new .rr-icon { background: color-mix(in srgb, var(--calm) 22%, var(--surface-2)); color: var(--calm); }
 .lib-row.picked { border-color: var(--accent); }
 
-.side-brand { display: none; }
+.side-brand, .page-title, .hero-week, #tabs a.side-user { display: none; }
 
 /* ===================== Versión web (pantallas anchas) =====================
    En el celular no cambia nada: todo esto solo aplica desde 900 px de ancho. */
@@ -553,9 +553,13 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
   body.onboarding #tabs { display: none; }
 
   /* Contenido: más ancho, desplazado por la barra lateral */
-  #app { max-width: 1040px; margin: 0 0 0 var(--side); padding: 0 40px 64px; }
-  .topbar { margin: 0 -40px 20px; padding-left: 40px; padding-right: 32px; }
-  .topbar.brand { padding-left: 40px; }
+  /* El contenido ocupa el ancho del monitor (hasta un tope); las pantallas de lectura quedan más angostas. */
+  :root { --gut: clamp(28px, 3vw, 64px); }
+  body { padding-left: var(--side); }
+  body.onboarding { padding-left: 0; }
+  #app { max-width: 1680px; margin: 0 auto; padding: 0 var(--gut) 64px; }
+  .topbar { margin: 0 calc(-1 * var(--gut)) 20px; padding-left: var(--gut); padding-right: calc(var(--gut) - 8px); }
+  .topbar.brand { padding-left: var(--gut); }
   .topbar h1 { text-align: left; }
   .topbar.brand .brand-mark { visibility: hidden; } /* la marca ya está en la barra lateral */
   h2 { font-size: 40px; }
@@ -594,16 +598,16 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
   .ob-step .ob-card, .ob-step .seg-btn { transition: background .15s, box-shadow .15s; }
 
   /* Tarjetas sueltas en columnas */
-  .tpl-grid, .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; align-items: stretch; }
+  .tpl-grid, .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; align-items: stretch; }
   .tpl-grid > .ob-card, .card-grid > .card { margin: 0; }
-  .new-routine { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .new-routine { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
   .new-routine .ob-card { margin: 0; }
   .tpl-grid .tpl-card { margin: 0; }
 
   /* Distribución en columnas */
-  .list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px; }
   .list > .row { min-width: 0; }
-  .charts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
   .grid3 { gap: 12px; }
   .kpis { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
   .cal { gap: 6px; }
@@ -616,9 +620,13 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
   .form { max-width: 640px; }
 }
 
-/* Pantallas muy anchas: tarjetas sueltas en dos columnas dentro del contenido */
-@media (min-width: 1280px) {
-  #app { max-width: 1160px; }
+/* Monitores anchos: resumen fijo a la izquierda y el detalle a la derecha */
+@media (min-width: 1100px) {
+  .split { display: grid; grid-template-columns: minmax(360px, 500px) minmax(0, 1fr); gap: 32px; align-items: start; }
+  .split.cal-split { grid-template-columns: minmax(420px, 680px) minmax(0, 1fr); }
+  .split > .side { position: sticky; top: 76px; }
+  .split > .side > .hero, .split > .main > .card:first-child { margin-top: 0; }
+  .split .main .meal:first-of-type { margin-top: 0; }
 }
 
 /* ===================== Ventana "Agregar alimento" ===================== */
@@ -654,4 +662,58 @@ body.sheet-open { overflow: hidden; }
   .sheet .chips.scroll-x { flex-wrap: wrap; }
   .sheet .btn.block, .sheet .btn.big { max-width: none; }
   @keyframes sheet-pop { from { transform: translate(-50%, -48%); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+}
+
+/* Entreno, saludo fijo y portada horizontal (pantallas anchas) */
+@media (min-width: 900px) {
+  .topbar.brand .brand-mark { display: none; }
+  .page-title {
+    display: block; font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  }
+  #tabs a.side-user {
+    display: block; margin: -14px 0 22px 0; padding: 0 14px; border-radius: 0;
+    font-family: var(--display); font-size: 19px; font-weight: 500; letter-spacing: .04em; text-transform: none; color: var(--accent);
+  }
+  #tabs a.side-user:hover { background: none; color: var(--text); }
+  .hero .greet { display: none; }
+  .hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 40px; padding: 26px 32px; }
+  .hero-main { flex: 1 1 300px; min-width: 0; }
+  .hero-main h2 { margin-bottom: 4px; }
+  .hero-actions { flex: 0 1 420px; min-width: 280px; }
+  .hero-week { display: block; }
+  .hero-main .btn.big { width: auto; min-width: 300px; margin-top: 16px; }
+  .hero-actions .food-line { margin-top: 14px; }
+  .hero-week { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .hero-week .kpis { margin-top: 6px; }
+  .hero.compact { display: block; padding: 18px; }
+  .cardio-card { max-width: 560px; }
+}
+
+/* Ejercicio: en pantallas angostas se conserva el orden de siempre (series, nota, video, botones) */
+@media (max-width: 1099px) {
+  .ex-split { display: flex; flex-direction: column; }
+  .ex-split > .side, .ex-split > .main { display: contents; }
+  .ex-split .ex-video { order: 1; }
+  .ex-split .pager { order: 2; }
+}
+@media (min-width: 1100px) { .ex-split .sets, .ex-split textarea { max-width: 760px; } }
+
+/* Títulos de las pantallas principales: todos pegados a la izquierda (se oculta el hueco del botón "volver" que no existe) */
+@media (min-width: 900px) {
+  .topbar > span.icon:first-child { display: none; }
+  .cards-cols { column-width: 420px; column-gap: 14px; }
+  .cards-cols > .card { break-inside: avoid; margin: 0 0 14px; }
+}
+
+@media (min-width: 900px) {
+  .cards-cols > * { break-inside: avoid; }
+  .cards-cols > h3.section, .cards-cols > .section-head { break-after: avoid; }
+  .cards-cols > .btn.block, .cards-cols > .note, .cards-cols > p { margin-top: 0; }
+  .cards-cols .plan-group { break-inside: avoid; }
+}
+
+/* Plan de alimentación: la tarjeta del plan a todo el ancho y las formas de cargarlo/cambiarlo en una fila */
+@media (min-width: 900px) {
+  .opt-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .opt-row > .ob-card { margin: 0; }
 }

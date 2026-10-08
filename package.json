@@ -1,6 +1,6 @@
 {
   "name": "temple",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "private": true,
   "description": "Temple: rutina, alimentación y progreso. Web (PWA) y Android (Capacitor).",
   "type": "module",

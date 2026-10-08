@@ -248,6 +248,7 @@ export function viewFood() {
     ${dateBanner()}
     ${date === todayStr() ? mealPrepBanner() : ''}
     ${unlinkedWarning()}
+    <div class="split"><div class="side">
     <section class="hero compact">
       <div class="muted">${DOW[toDate(date).getDay()]} · ${isTrainingDay(date) ? 'día de entreno' : 'día de descanso'}</div>
       <h2>${score != null ? `${Math.round(score * 100)}% del plan` : 'Sin registrar'}</h2>
@@ -276,12 +277,14 @@ export function viewFood() {
         </div>
       </div>
     </section>
+    </div><div class="main">
     ${mealCards}
     <details class="card info" data-keep="recs">
       <summary>📋 Recomendaciones del plan</summary>
       <ul>${(p.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}</ul>
     </details>
-    <a class="btn block" href="#/plan">📋 Ver o editar mi plan</a>`;
+    <a class="btn block" href="#/plan">📋 Ver o editar mi plan</a>
+    </div></div>`;
 }
 
 // ---------- Eventos ----------

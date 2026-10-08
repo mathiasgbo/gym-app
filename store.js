@@ -208,6 +208,7 @@ export const gear = `<a class="icon" href="#/settings" aria-label="Ajustes">${IC
 export const brandbar = () => `
   <header class="topbar brand">
     <span class="brand-mark">${LOGO}<h1>Temple</h1></span>
+    <span class="page-title">Entreno</span>
     ${gear}
   </header>`;
 

@@ -43,6 +43,7 @@ export function viewCalendar(ym) {
 
   return `
     ${topbar('Calendario', null, gear)}
+    <div class="split cal-split"><div class="side">
     <div class="cal-nav">
       <a class="btn small" href="#/cal/${prev}" aria-label="Mes anterior">‹</a>
       <h2>${MONTHS[m - 1]} ${y}</h2>
@@ -56,6 +57,7 @@ export function viewCalendar(ym) {
       <span><i class="dot train"></i>Entreno</span><span><i class="dot plan"></i>Planificado</span>
       <span><i class="dot cardio"></i>Cardio</span><span><i class="dot food good"></i><i class="dot food mid"></i><i class="dot food low"></i>Comidas</span>
     </div>
+    </div><div class="main">
     <section class="card">
       <h3>Resumen del mes</h3>
       <div class="kpis">
@@ -63,7 +65,8 @@ export function viewCalendar(ym) {
         <div><b>${cardio}</b><small>días de cardio</small></div>
         <div><b>${avg != null ? avg + '%' : '—'}</b><small>comidas cumplidas</small></div>
       </div>
-    </section>`;
+    </section>
+    </div></div>`;
 }
 
 export function viewDate(d) {

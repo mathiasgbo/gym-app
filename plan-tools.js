@@ -219,6 +219,7 @@ export function viewPlanHub() {
       </div>
     </section>` : '<p class="muted">Cargá el plan de tu nutricionista para registrar tus comidas por porciones y ver las calorías.</p>'}
     <h3 class="section">${p ? 'Reemplazar el plan' : 'Cargar un plan'}</h3>
+    <div class="opt-row">
     <a class="ob-card pick" href="#/plan/ai">
       <span class="ob-ic">${'📄'}</span>
       <span><b>Desde el PDF de tu nutricionista</b><small>Temple lee el PDF y te arma un pedido para que tu IA de confianza (ChatGPT, Gemini, Claude…) lo convierta. Después pegás la respuesta.</small></span></a>
@@ -226,9 +227,10 @@ export function viewPlanHub() {
       <span class="ob-ic">{ }</span>
       <span><b>Archivo de Temple (.json)</b><small>Un plan exportado desde Temple o que ya tenés en este formato.</small></span>
       <input type="file" accept="application/json,.json" data-action="plan-file" hidden></label>
-    <button class="ob-card pick" data-action="plan-manual">
+    ${p ? '' : `<button class="ob-card pick" data-action="plan-manual">
       <span class="ob-ic">✎</span>
-      <span><b>Armarlo a mano</b><small>${p ? 'Editá el plan actual.' : 'Arrancás con una base (desayuno, almuerzo, merienda, cena) y la ajustás.'}</small></span></button>`;
+      <span><b>Armarlo a mano</b><small>Arrancás con una base (desayuno, almuerzo, merienda, cena) y la ajustás.</small></span></button>`}
+    </div>`;
 }
 
 export function viewPlanAi() {

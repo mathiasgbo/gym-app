@@ -174,6 +174,7 @@ function viewHome() {
       <span class="chev">›</span></a>`;
   }).join('');
   const food = foodSummaryLine(date);
+  const week = weekStats();
 
   return `
     ${brandbar()}
@@ -182,15 +183,21 @@ function viewHome() {
     ${deloadBanner()}
     ${date === todayStr() ? mealPrepBanner() : ''}
     <section class="hero">
-      ${date === todayStr() ? `<div class="greet">${greeting()}</div>` : ''}
-      <div class="muted">${DOW[dow]} · ${fmtDate(date)}</div>
-      ${!R.days.length
-        ? `<h2>Armá tu rutina</h2><p class="muted">Elegí una plantilla, empezá de cero o importá la que te pasaron.</p>`
-        : today
-          ? `${R.mode === 'rotation' ? `<div class="muted small">Toca el día ${dayTag(today)}</div>` : ''}<h2>${esc(today.title)}</h2><a class="btn primary big" href="#/day/${today.id}">Empezar entrenamiento</a>`
-          : `<h2>Día de descanso</h2><p class="muted">Podés hacer igual el cardio, o entrenar algún día de la lista.</p>`}
-      ${R.days.length ? `<label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}> Cardio hecho</label>` : ''}
-      ${food ? `<a class="food-line" href="#/food">${food} <span class="chev">›</span></a>` : ''}
+      <div class="hero-main">
+        ${date === todayStr() ? `<div class="greet">${greeting()}</div>` : ''}
+        <div class="muted">${DOW[dow]} · ${fmtDate(date)}</div>
+        ${!R.days.length
+          ? `<h2>Armá tu rutina</h2><p class="muted">Elegí una plantilla, empezá de cero o importá la que te pasaron.</p>`
+          : today
+            ? `${R.mode === 'rotation' ? `<div class="muted small">Toca el día ${dayTag(today)}</div>` : ''}<h2>${esc(today.title)}</h2><a class="btn primary big" href="#/day/${today.id}">Empezar entrenamiento</a>`
+            : `<h2>Día de descanso</h2><p class="muted">Podés hacer igual el cardio, o entrenar algún día de la lista.</p>`}
+      </div>
+      <div class="hero-actions">
+        ${R.days.length ? `<label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}> Cardio hecho</label>` : ''}
+        ${food ? `<a class="food-line" href="#/food">${food} <span class="chev">›</span></a>` : ''}
+        ${R.days.length ? `<div class="hero-week"><small>Últimos 7 días</small>
+          <div class="kpis"><div><b>${week.trained}/${week.planned}</b><small>entrenos</small></div><div><b>${week.cardio}</b><small>cardio</small></div><div><b>${week.food != null ? week.food + '%' : '—'}</b><small>comidas</small></div></div></div>` : ''}
+      </div>
     </section>
     ${R.days.length ? `<div class="section-head"><h3 class="section">${R.mode === 'rotation' ? 'Rotación' : 'Semana'}</h3><a class="small-link" href="#/routine">✎ Editar rutina</a></div>
     <div class="list">${rows}</div>` : `
@@ -237,7 +244,7 @@ function viewDay(id) {
     ${deloadBanner()}
     <p class="note">🔥 ${esc(state.routine.warmup)}</p>
     ${groups}
-    <section class="card">
+    <section class="card cardio-card">
       <label class="check-row"><input type="checkbox" data-action="cardio" ${log?.cardio ? 'checked' : ''}>
         <span><b>Cardio</b><small>${esc(state.routine.cardio)}</small></span></label>
     </section>`;
@@ -278,6 +285,7 @@ function viewEx(dayId, idx) {
   return `
     ${topbar(e.name, `#/day/${d.id}`, `<a class="icon" href="#/edit/${d.id}/${i}/ex" aria-label="Editar ejercicio">✎</a>`)}
     ${dateBanner()}
+    <div class="split ex-split"><div class="side">
     <div class="meta">${target(e)}${e.heavy ? ' · <span class="tag">pesado</span>' : ''}</div>
     ${e.note ? `<p class="note warn">${esc(e.note)}</p>` : ''}
     <section class="sug ${sug.level}">
@@ -285,13 +293,7 @@ function viewEx(dayId, idx) {
       <p>${esc(sug.text)}</p>
       ${sug.last ? `<small class="muted">Última vez (${fmtDate(sug.last.date)}): ${doneSets(sug.last).map(x => fmtSet(e, x)).join(' · ')}</small>` : ''}
     </section>
-    <div class="sets">
-      <div class="set head"><span class="n">#</span>${e.type === 'weight' ? '<span>kg</span>' : ''}<span>${unitLabel(e)}</span><span class="prev">anterior</span><span></span></div>
-      ${setRows}
-      <button class="btn small ghost" data-action="add-set">+ Agregar serie</button>
-    </div>
-    <textarea data-field="note" rows="2" placeholder="Notas de hoy (molestias, sensaciones…)">${esc(cur?.note || '')}</textarea>
-    <details class="card">
+    <details class="card ex-video">
       <summary>🎬 Video de técnica</summary>
       <div id="video-slot"></div>
       <div class="btns">
@@ -304,7 +306,15 @@ function viewEx(dayId, idx) {
       </div>
       <p class="muted small">El video subido queda guardado en el teléfono y se ve sin señal. Los links necesitan internet.</p>
     </details>
-    <nav class="pager">${prevBtn}${nextBtn}</nav>`;
+    </div><div class="main">
+    <div class="sets">
+      <div class="set head"><span class="n">#</span>${e.type === 'weight' ? '<span>kg</span>' : ''}<span>${unitLabel(e)}</span><span class="prev">anterior</span><span></span></div>
+      ${setRows}
+      <button class="btn small ghost" data-action="add-set">+ Agregar serie</button>
+    </div>
+    <textarea data-field="note" rows="2" placeholder="Notas de hoy (molestias, sensaciones…)">${esc(cur?.note || '')}</textarea>
+    <nav class="pager">${prevBtn}${nextBtn}</nav>
+    </div></div>`;
 }
 
 // ---------- Vistas: progreso ----------
@@ -322,6 +332,7 @@ function viewProgress(key) {
 
   return `
     ${topbar('Progreso', null, gear)}
+    <div class="card-grid">
     <section class="card">
       <h3>Últimos 7 días</h3>
       <div class="kpis">
@@ -345,6 +356,7 @@ function viewProgress(key) {
         ${delta != null ? ` · ${delta >= 0 ? '+' : ''}${num(Math.round(delta * 10) / 10)} kg en 4 semanas` : ''}
         ${lastBody && state.profile?.height ? ` · IMC ${num(Math.round(state.body[lastBody] / (state.profile.height / 100) ** 2 * 10) / 10)}` : ''}</small>
     </section>
+    </div>
     ${exercisesSection(names)}`;
 }
 
@@ -477,6 +489,7 @@ function viewSettings() {
   const dowOpts = ['<option value="">No recordar</option>', ...DOW.map((d, k) => `<option value="${k}" ${prep != null && prep !== '' && Number(prep) === k ? 'selected' : ''}>${d}</option>`)].join('');
   return `
     ${topbar('Ajustes', '#/')}
+    <div class="cards-cols">
     ${profileCard()}
     ${kcalCard()}
     ${env.native ? nativeSettings() : ''}
@@ -507,18 +520,21 @@ function viewSettings() {
       <h3>Rutinas</h3>
       <p class="muted small">Activa: ${esc(state.routine.name)}. Cambiá de rutina, creá una nueva o importá una.</p>
       <a class="btn small" href="#/routines">Ver rutinas</a>
-    </section>`;
+    </section>
+    </div>`;
 }
 
 const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pantalla no existe.</p>`;
 
 // ---------- Router ----------
 
-const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
+const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Alimentación'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
 const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', plan: 'food', rimport: '', routine: '', routines: '', tpls: '', tpl: '', rday: '', lib: '', replace: '', newex: '' };
 
 // Agregar alimento se abre como ventana sobre la pantalla de Comida (no pierde el lugar donde estabas).
 const SHEET_VIEWS = new Set(['add', 'newfood']);
+// Pantallas de formularios y tarjetas, que se acomodan en columnas en monitores grandes.
+const COLS_VIEWS = new Set(['rday', 'routine', 'rimport', 'plan', 'date']);
 let sheetShown = false;
 
 function render({ keep = false } = {}) {
@@ -553,10 +569,16 @@ function render({ keep = false } = {}) {
     const label = view === 'newfood' ? 'Nuevo alimento' : 'Agregar alimento';
     $app.innerHTML = viewFood() + `<a class="sheet-bg" href="#/food" aria-label="Cerrar"></a>
       <div class="sheet" role="dialog" aria-modal="true" aria-label="${label}">${html()}</div>`;
-  } else $app.innerHTML = html ? html() : notFound();
+  } else {
+    let body = html ? html() : notFound();
+    // Pantallas de formularios y tarjetas: en monitores anchos se reparten en columnas bajo el título.
+    if (COLS_VIEWS.has(view) && !(view === 'plan' && !a) && body.includes('</header>')) body = body.replace('</header>', '</header><div class="cards-cols">') + '</div>';
+    $app.innerHTML = body;
+  }
   document.body.classList.toggle('sheet-open', isSheet);
   // La marca de la barra lateral solo se ve en pantallas anchas (ver styles.css).
-  $tabs.innerHTML = '<div class="side-brand"><img src="icons/logo.svg" alt=""><span>Temple</span></div>' + TABS.map(([v, icon, label]) =>
+  $tabs.innerHTML = '<div class="side-brand"><img src="icons/logo.svg" alt=""><span>Temple</span></div>' + `<a class="side-user" href="#/settings" aria-label="Ajustes">Hola${state.profile?.name ? `, ${esc(state.profile.name.trim().split(' ')[0])}` : ''}</a>`
+    + TABS.map(([v, icon, label]) =>
     `<a href="#/${v}" class="${TAB_OF[view] === v ? 'on' : ''}">${icon}${label}</a>`).join('');
   if (keep) {
     for (const [k, isOpen] of open) {
