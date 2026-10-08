@@ -2,7 +2,7 @@
 // Todo es aproximado y de apoyo: el plan de la nutricionista sigue siendo por porciones.
 import { state, todayStr, addDays, fmtDate, profileAge } from './store.js';
 import { findFood, nutrients, entryInfo } from './foods.js';
-import { plan, mealsFor, mealStatus } from './food.js';
+import { plan, mealsFor, mealStatus, groupCat } from './food.js';
 import { measures } from './anthro.js';
 
 const ZERO = () => ({ kcal: 0, p: 0, c: 0, f: 0 });
@@ -21,10 +21,23 @@ function optionNutrients(groupId, label) {
   return n;
 }
 
-// Promedio de las opciones de un grupo: se usa cuando la comida se marcó "Comí" sin detalle.
+// Cantidad de opciones del plan que no están vinculadas a la base (no tienen calorías propias).
+export function unlinkedCount() {
+  const gs = Object.values(plan()?.groups || {});
+  return gs.reduce((a, g) => a + g.options.filter(o => !(typeof o === 'object' && o.f?.length)).length, 0);
+}
+
+// Aporte típico de una porción por categoría, para grupos donde ninguna opción está vinculada.
+const CAT_DEFAULT = {
+  prot: { kcal: 180, p: 25, c: 2, f: 8 }, hc: { kcal: 200, p: 6, c: 40, f: 2 }, grasa: { kcal: 100, p: 2, c: 3, f: 9 },
+  veg: { kcal: 40, p: 2, c: 8, f: 0 }, fruta: { kcal: 80, p: 1, c: 20, f: 0 },
+};
+
+// Promedio de las opciones de un grupo: se usa cuando la comida se marcó "Comí" sin detalle
+// o cuando una opción no está vinculada. Si ninguna del grupo está vinculada, un valor típico de la categoría.
 function groupAverage(groupId) {
   const opts = (plan()?.groups[groupId]?.options || []).map(o => optionNutrients(groupId, optLabel(o))).filter(Boolean);
-  if (!opts.length) return null;
+  if (!opts.length) return CAT_DEFAULT[groupCat(groupId)] ? { ...CAT_DEFAULT[groupCat(groupId)] } : null;
   return opts.reduce((a, n) => add(a, n, 1 / opts.length), ZERO());
 }
 
@@ -39,7 +52,15 @@ export function mealNutrition(m, date) {
   for (const it of st.items) {
     const [g, ...rest] = it.split('|');
     const on = optionNutrients(g, rest.join('|'));
-    if (on) add(n, on); else estimated = true;
+    if (on) {
+      add(n, on);
+      if (plan()?.groups[g]?.options.some(o => typeof o === 'object' && o.t === rest.join('|') && o.approx)) estimated = true;
+    } else {
+      // Opción sin vincular: se estima con el promedio de las demás opciones de su grupo.
+      const avg = groupAverage(g);
+      if (avg) add(n, avg);
+      estimated = true;
+    }
   }
   for (const e of st.foods) { const i = entryInfo(e); if (i.n) add(n, i.n); }
   if (st.generic) {

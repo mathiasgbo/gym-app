@@ -2,7 +2,7 @@
 // Cada versión se descarga COMPLETA en un caché nuevo antes de activarse, y la app se recarga una vez
 // cuando la nueva versión toma el control. Así nunca se mezclan archivos viejos con nuevos.
 // Al cambiar cualquier archivo, subir CACHE (temple-vN → temple-vN+1).
-const CACHE = 'temple-v20';
+const CACHE = 'temple-v21';
 const ASSETS = [
   './', 'index.html', 'styles.css', 'privacypolicy.html', 'manifest.webmanifest',
   'app.js', 'routine.js', 'store.js', 'food.js', 'calendar.js', 'anthro.js', 'anthro-parse.js', 'native.js', 'profile.js',

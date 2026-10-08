@@ -517,8 +517,16 @@ const notFound = () => `${topbar('No encontrado', '#/')}<p class="muted">Esa pan
 const TABS = [['', ICONS.train, 'Entreno'], ['food', ICONS.food, 'Comida'], ['cal', ICONS.cal, 'Calendario'], ['hist', ICONS.progress, 'Progreso']];
 const TAB_OF = { '': '', day: '', ex: '', edit: '', food: 'food', cal: 'cal', date: 'cal', hist: 'hist', body: 'hist', settings: '', add: 'food', newfood: 'food', plan: 'food', rimport: '', routine: '', routines: '', tpls: '', tpl: '', rday: '', lib: '', replace: '', newex: '' };
 
+// Agregar alimento se abre como ventana sobre la pantalla de Comida (no pierde el lugar donde estabas).
+const SHEET_VIEWS = new Set(['add', 'newfood']);
+let sheetShown = false;
+
 function render({ keep = false } = {}) {
   const [, view = '', a, b, c, x] = (location.hash || '#/').split('/');
+  const isSheet = SHEET_VIEWS.has(view);
+  // Al abrir o cerrar la ventana, la pantalla de fondo conserva su scroll y sus comidas abiertas.
+  if (isSheet || (sheetShown && view === 'food')) keep = true;
+  const sheetY = document.querySelector('.sheet')?.scrollTop || 0;
   const open = keep ? [...$app.querySelectorAll('details[data-keep]')].map(d => [d.dataset.keep, d.open]) : [];
   const y = window.scrollY;
   ctx = null;
@@ -541,8 +549,14 @@ function render({ keep = false } = {}) {
     hist: () => viewProgress(a), body: viewBody, settings: viewSettings,
     add: () => viewAddFood(a, b, c), newfood: () => viewNewFood(a),
   }[view];
-  $app.innerHTML = html ? html() : notFound();
-  $tabs.innerHTML = TABS.map(([v, icon, label]) =>
+  if (isSheet) {
+    const label = view === 'newfood' ? 'Nuevo alimento' : 'Agregar alimento';
+    $app.innerHTML = viewFood() + `<a class="sheet-bg" href="#/food" aria-label="Cerrar"></a>
+      <div class="sheet" role="dialog" aria-modal="true" aria-label="${label}">${html()}</div>`;
+  } else $app.innerHTML = html ? html() : notFound();
+  document.body.classList.toggle('sheet-open', isSheet);
+  // La marca de la barra lateral solo se ve en pantallas anchas (ver styles.css).
+  $tabs.innerHTML = '<div class="side-brand"><img src="icons/logo.svg" alt=""><span>Temple</span></div>' + TABS.map(([v, icon, label]) =>
     `<a href="#/${v}" class="${TAB_OF[view] === v ? 'on' : ''}">${icon}${label}</a>`).join('');
   if (keep) {
     for (const [k, isOpen] of open) {
@@ -551,10 +565,25 @@ function render({ keep = false } = {}) {
     }
     window.scrollTo(0, y);
   } else requestAnimationFrame(() => window.scrollTo(0, 0));
+  if (isSheet) {
+    const sheet = $app.querySelector('.sheet');
+    if (sheetShown && sheet) sheet.scrollTop = sheetY;
+    // En computadora, la búsqueda queda lista para escribir; en el celular no se abre el teclado solo.
+    const q = sheet?.querySelector('[data-field="food-q"]');
+    if (q && !sheetShown && matchMedia('(hover: hover)').matches) q.focus({ preventScroll: true });
+  }
+  sheetShown = isSheet;
   if (ctx) showVideo(ctx.e.key);
   if (view === 'settings') showStorage();
   if (view === 'food') syncSleep(activeDate());
 }
+
+// Escape cierra la ventana de alimentos (o vuelve a la búsqueda si estaba eligiendo la porción).
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape' || !sheetShown) return;
+  const [, , meal, id] = location.hash.split('/');
+  location.hash = id ? `#/add/${meal}` : '#/food';
+});
 ui.render = render;
 history.scrollRestoration = 'manual';
 window.addEventListener('hashchange', () => render());

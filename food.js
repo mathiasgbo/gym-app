@@ -8,7 +8,7 @@ import {
   isTrainingDay, topbar, gear, todayStr, toDate, addDays, DOW, env,
 } from './store.js';
 import { entryInfo } from './foods.js';
-import { mealNutrition, dayNutrition, energy } from './nutrition.js';
+import { mealNutrition, dayNutrition, energy, unlinkedCount } from './nutrition.js';
 
 const fmtKcal = k => Math.round(k).toLocaleString('es-AR');
 
@@ -33,6 +33,14 @@ function energyBlock(date) {
   </div>`;
 }
 
+// Aviso cuando hay opciones del plan sin calorías (plan viejo o importado sin vincular).
+function unlinkedWarning() {
+  const n = unlinkedCount();
+  if (!n) return '';
+  return `<div class="banner"><span>${n} opci${n === 1 ? 'ón' : 'ones'} del plan sin calorías: se estiman con el promedio de su grupo.</span>
+    <button class="btn small" data-action="plan-autolink">Vincular solas</button></div>`;
+}
+
 const SEP = '|';
 const optLabel = o => typeof o === 'string' ? o : o.t;
 const optWeight = o => typeof o === 'string' ? 1 : (o.n ?? 1);
@@ -55,7 +63,7 @@ export function mealsFor(date) {
 const CATS = [['prot', 'Proteína'], ['hc', 'Hidratos'], ['grasa', 'Grasa'], ['veg', 'Vegetales'], ['fruta', 'Fruta']];
 
 // Categoría de un grupo del plan: la del campo "cat" si existe, o deducida del id/nombre.
-function groupCat(id) {
+export function groupCat(id) {
   const g = plan()?.groups[id];
   if (g?.cat) return g.cat;
   const s = `${id} ${g?.label || ''}`.toLowerCase();
@@ -239,6 +247,7 @@ export function viewFood() {
     ${topbar('Alimentación', null, gear)}
     ${dateBanner()}
     ${date === todayStr() ? mealPrepBanner() : ''}
+    ${unlinkedWarning()}
     <section class="hero compact">
       <div class="muted">${DOW[toDate(date).getDay()]} · ${isTrainingDay(date) ? 'día de entreno' : 'día de descanso'}</div>
       <h2>${score != null ? `${Math.round(score * 100)}% del plan` : 'Sin registrar'}</h2>

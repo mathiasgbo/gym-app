@@ -56,6 +56,24 @@ export function matchFood(name) {
   return null;
 }
 
+// Vincula las opciones sueltas buscando su nombre en la base, con la porción estándar del alimento.
+// Quedan marcadas como aproximadas (≈) para que el usuario revise los gramos. Devuelve cuántas vinculó.
+function autoLink(p) {
+  let n = 0;
+  for (const g of Object.values(p?.groups || {})) {
+    g.options = g.options.map(o => {
+      const opt = optObj(o);
+      if (opt.f?.length) return o;
+      const m = matchFood(opt.t);
+      const food = m && findFood(m.id);
+      if (!food) return o;
+      n++;
+      return { ...opt, f: [[food.id, food.portions[0]?.[1] || 100]], approx: true };
+    });
+  }
+  return n;
+}
+
 // ---------- Pedido para la IA ----------
 
 function buildPrompt(text) {
@@ -528,6 +546,12 @@ document.addEventListener('click', async ev => {
     draft = null; aiResult = ''; aiText = ''; aiInfo = '';
     save();
     location.hash = '#/food';
+  } else if (a === 'plan-autolink') {
+    const n = autoLink(p);
+    if (!n) { alert('No encontré alimentos parecidos en la base. Podés vincularlas a mano desde "Ver o editar mi plan".'); return; }
+    alert(`Vinculé ${n} opci${n === 1 ? 'ón' : 'ones'} con alimentos de la base, con una porción estándar. Quedan marcadas con ≈ para que revises los gramos en "Ver o editar mi plan".`);
+    save();
+    ui.render({ keep: true });
   } else if (a === 'plan-export') {
     exportPlan();
   } else if (a === 'plan-del') {
