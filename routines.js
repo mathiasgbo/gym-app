@@ -121,7 +121,7 @@ export function viewRoutines() {
         <span><b>Importar o pegar</b><small>La rutina de tu entrenador: PDF, Word, texto de WhatsApp o un archivo de Temple.</small></span></a>
     </div>
     <h3 class="section">Archivadas</h3>
-    ${rows || '<p class="muted small">Cuando cambies de rutina, la anterior queda guardada acá.</p>'}
+    ${rows ? `<div class="card-grid">${rows}</div>` : '<p class="muted small">Cuando cambies de rutina, la anterior queda guardada acá.</p>'}
     <p class="muted small">Cambiar de rutina no borra nada: los pesos, el historial y las sugerencias de cada ejercicio se mantienen.</p>`;
 }
 
@@ -129,9 +129,9 @@ export function viewRoutines() {
 
 // Opciones para arrancar (inicio sin rutina y "Desde una plantilla").
 export function templateCards() {
-  return TEMPLATES.map(t => `
+  return `<div class="tpl-grid">${TEMPLATES.map(t => `
     <a class="ob-card pick tpl-card" href="#/tpl/${t.id}">
-      <span><b>${esc(t.name)}</b><small>${esc(t.level)} · ${t.days.length} días</small><small>${esc(t.desc)}</small></span></a>`).join('');
+      <span><b>${esc(t.name)}</b><small>${esc(t.level)} · ${t.days.length} días</small><small>${esc(t.desc)}</small></span></a>`).join('')}</div>`;
 }
 
 export function viewTemplates() {
@@ -153,7 +153,7 @@ export function viewTemplate(id) {
   return `
     ${topbar(t.name, '#/tpls')}
     <p class="muted">${esc(t.desc)} <b>${esc(t.level)}</b>.</p>
-    ${days}
+    <div class="card-grid">${days}</div>
     <button class="btn primary block big" data-action="tpl-use" data-id="${t.id}">Usar esta plantilla</button>
     <p class="muted small">Se crea como tu rutina activa${state.routine.days.length ? ` y "${esc(state.routine.name)}" queda archivada` : ''}. Los días de la semana, ejercicios, series y descansos se pueden cambiar en Mi rutina.</p>`;
 }

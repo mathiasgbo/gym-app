@@ -148,7 +148,7 @@ document.addEventListener('change', async ev => {
   const found = [], errors = [];
   for (const f of files) {
     try { found.push(await readPdf(f)); } catch (err) {
-      errors.push(`${f.name}: ${/fetch|import|module/i.test(err.message) ? 'no se pudo cargar el lector de PDF (¿sin señal?)' : err.message}`);
+      errors.push(`${f.name}: ${/fetch|import|module/i.test(err.message) ? `no se pudo cargar el lector de PDF (${err.message})` : err.message}`);
     }
   }
   if (errors.length) alert('Algunos archivos no se pudieron leer:\n' + errors.join('\n'));

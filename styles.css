@@ -519,3 +519,101 @@ h3.label { margin: 16px 0 8px; font-size: 13px; color: var(--muted); text-transf
 .rr-ex.approx .rr-icon { background: color-mix(in srgb, var(--hold) 22%, var(--surface-2)); color: var(--hold); }
 .rr-ex.new .rr-icon { background: color-mix(in srgb, var(--calm) 22%, var(--surface-2)); color: var(--calm); }
 .lib-row.picked { border-color: var(--accent); }
+
+/* ===================== Versión web (pantallas anchas) =====================
+   En el celular no cambia nada: todo esto solo aplica desde 900 px de ancho. */
+@media (min-width: 900px) {
+  :root { --side: 232px; }
+  body { font-size: 16px; }
+
+  /* Pestañas: pasan de la barra inferior a una barra lateral con la marca */
+  #tabs {
+    top: 0; right: auto; bottom: 0; width: var(--side);
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 28px 14px 20px;
+    background: color-mix(in srgb, #0d0c0b 96%, transparent);
+    border-top: none; border-right: 1px solid var(--border);
+  }
+  #tabs::before {
+    content: 'TEMPLE'; display: block; margin: 0 0 24px 12px;
+    font-family: var(--display); font-size: 30px; font-weight: 700; letter-spacing: .2em;
+    background: var(--temper); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  #tabs a {
+    flex-direction: row; justify-content: flex-start; gap: 14px;
+    padding: 12px 14px; border-radius: 12px; font-size: 16px; letter-spacing: .1em;
+    transition: background .15s, color .15s;
+  }
+  #tabs a:hover { background: var(--surface-2); color: var(--text); }
+  #tabs a.on { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+  #tabs a.on::before { top: 20%; bottom: 20%; left: -14px; right: auto; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
+  body.onboarding #tabs { display: none; }
+
+  /* Contenido: más ancho, desplazado por la barra lateral */
+  #app { max-width: 1040px; margin: 0 0 0 var(--side); padding: 0 40px 64px; }
+  .topbar { margin: 0 -40px 20px; padding-left: 40px; padding-right: 32px; }
+  .topbar.brand { padding-left: 40px; }
+  .topbar h1 { text-align: left; }
+  .topbar.brand .brand-mark { visibility: hidden; } /* la marca ya está en la barra lateral */
+  h2 { font-size: 40px; }
+
+  /* Elementos flotantes centrados en el contenido, no en la ventana */
+  #rest { left: calc(50% + var(--side) / 2); bottom: 28px; }
+  #toast { left: calc(50% + var(--side) / 2); top: 28px; }
+  .search-box { top: 66px; }
+
+  /* Interacción de ratón */
+  a.row, .btn, .chip, .check, .icon-btn, .ob-card, .seg-btn { transition: background .15s, border-color .15s, filter .15s, transform .15s; }
+  a.row:hover, .lib-row:hover, .ob-card:hover { background: var(--surface-2); }
+  .row.today:hover, .hero:hover { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--temper) border-box; }
+  .btn:hover { filter: brightness(1.15); }
+  .btn.primary:hover { transform: translateY(-1px); }
+  .chip:hover:not(.on) { border-color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+
+  /* Bienvenida y perfil: tarjeta centrada sobre el fondo, en vez de columna de celular */
+  body.onboarding #app { max-width: none; margin: 0; padding: 0; }
+  body.onboarding .ob {
+    min-height: 100vh; align-items: center; justify-content: center; padding: 48px 24px;
+    background: radial-gradient(60% 50% at 50% 40%, #2b2116 0%, transparent 70%);
+  }
+  body.onboarding .ob-top { width: 100%; max-width: 620px; margin-bottom: 18px; }
+  body.onboarding .ob-step {
+    width: 100%; max-width: 620px; padding: 40px 48px 32px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
+    box-shadow: 0 24px 70px #000a;
+  }
+  body.onboarding .ob-step h2 { font-size: 52px; }
+  body.onboarding .ob-logo { width: 84px; height: 84px; margin: 0 0 16px; }
+  body.onboarding .ob-actions { margin-top: 20px; padding-top: 0; }
+  body.onboarding .ob-actions .btn { max-width: none; }
+  .ob-step .ob-card, .ob-step .seg-btn { transition: background .15s, box-shadow .15s; }
+
+  /* Tarjetas sueltas en columnas */
+  .tpl-grid, .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; align-items: stretch; }
+  .tpl-grid > .ob-card, .card-grid > .card { margin: 0; }
+  .new-routine { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .new-routine .ob-card { margin: 0; }
+  .tpl-grid .tpl-card { margin: 0; }
+
+  /* Distribución en columnas */
+  .list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .list > .row { min-width: 0; }
+  .charts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .grid3 { gap: 12px; }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+  .cal { gap: 6px; }
+  .cal-day { aspect-ratio: 1 / .8; }
+  .pager { max-width: 480px; }
+  .btn.big, .btn.block { max-width: 520px; }
+  .cmp { font-size: 15px; }
+  .cmp th, .cmp td { padding: 9px 8px; }
+  .chips.scroll-x { margin: 0 0 10px; padding: 0 0 4px; flex-wrap: wrap; overflow: visible; }
+  .form { max-width: 640px; }
+}
+
+/* Pantallas muy anchas: tarjetas sueltas en dos columnas dentro del contenido */
+@media (min-width: 1280px) {
+  #app { max-width: 1160px; }
+}
